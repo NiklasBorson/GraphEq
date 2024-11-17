@@ -36,6 +36,16 @@ namespace GraphEq
         {
             this.InitializeComponent();
         }
+        
+        private void CanvasControl_ManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
+        {
+            var delta = e.Delta;
+
+            m_scale *= delta.Scale;
+            m_origin += delta.Translation.ToVector2();
+
+            (sender as CanvasControl)?.Invalidate();
+        }
 
         private void SetDefaultTransform(CanvasControl sender)
         {
@@ -56,6 +66,8 @@ namespace GraphEq
             args.DrawingSession.Clear(BackColor);
 
             DrawAxes(sender, args.DrawingSession);
+
+            DrawCurve(sender, args.DrawingSession);
         }
 
         // Compute the "axis unit", which is the distance in logical units
@@ -170,14 +182,18 @@ namespace GraphEq
             }
         }
 
-        private void CanvasControl_ManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
+        private void DrawCurve(CanvasControl canvas, CanvasDrawingSession g)
         {
-            var delta = e.Delta;
+            // Use a hard-coded function for test purposes.
+            MathFn fn = (double x) => 1.0 / x;
 
-            m_scale *= delta.Scale;
-            m_origin += delta.Translation.ToVector2();
-
-            (sender as CanvasControl)?.Invalidate();
+            using (var builder = new CurveBuilder(canvas, fn, m_scale, m_origin))
+            {
+                using (var geometry = builder.CreateGeometry((float) canvas.ActualWidth))
+                {
+                    g.DrawGeometry(geometry, new Vector2(), CurveColor, 2.0f);
+                }
+            }
         }
     }
 }
