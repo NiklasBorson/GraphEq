@@ -20,32 +20,42 @@ namespace GraphEq
         Vector2 m_origin;
 
         // Use a hard-coded function for test purposes.
-        MathFn m_fn = (double x) => 1.0 / x;
+        VariableExpr m_x = new VariableExpr("x", 0);
+        Parser m_parser = null;
+        Expr m_expr = null;
+        string m_errorMessage = null;
 
         // Device-dependent resources.
         AxisRenderer m_axisRenderer;
 
         public MainWindow()
         {
+            m_parser = new Parser(
+                (string varName) => varName == "x" ? m_x : null
+                );
+
             this.InitializeComponent();
         }
         
         private void CanvasControl_ManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
         {
-            var delta = e.Delta;
+            if (m_expr != null)
+            {
+                var delta = e.Delta;
 
-            m_scale *= delta.Scale;
-            m_origin += delta.Translation.ToVector2();
+                m_scale *= delta.Scale;
+                m_origin += delta.Translation.ToVector2();
 
-            (sender as CanvasControl)?.Invalidate();
+                this.Canvas.Invalidate();
+            }
         }
 
-        private void SetDefaultTransform(CanvasControl sender)
+        private void SetDefaultTransform()
         {
             m_scale = 50;
             m_origin = new Vector2(
-                (float)sender.ActualWidth / 2,
-                (float)sender.ActualHeight / 2
+                (float)this.Canvas.ActualWidth / 2,
+                (float)this.Canvas.ActualHeight / 2
                 );
         }
 
@@ -57,27 +67,85 @@ namespace GraphEq
 
         private void CanvasControl_Draw(CanvasControl sender, CanvasDrawEventArgs args)
         {
-            if (m_scale == 0)
-            {
-                SetDefaultTransform(sender);
-            }
-
             args.DrawingSession.Clear(BackColor);
 
-            // Draw the axes.
-            m_axisRenderer.DrawAxes(args.DrawingSession, sender, m_scale, m_origin);
-
-            // Draw the curve.
-            if (m_fn != null)
+            if (m_expr != null)
             {
+                // Lazily initialize the transform the first time we draw a graph.
+                if (m_scale == 0)
+                {
+                    SetDefaultTransform();
+                }
+
+                // Draw the axes.
+                m_axisRenderer.DrawAxes(args.DrawingSession, sender, m_scale, m_origin);
+
+                // Draw the curve.
+                MathFn fn = (double x) =>
+                {
+                    m_x.Value = x;
+                    return m_expr.Eval();
+                };
+
                 CurveBuilder.Draw(
                     args.DrawingSession,
                     sender,
-                    m_fn,
+                    fn,
                     m_scale,
                     m_origin,
                     (float)sender.ActualWidth
                     );
+            }
+            else if (m_errorMessage != null)
+            {
+                // TODO
+            }
+        }
+
+        void SetExpression(Expr expr)
+        {
+            if (object.ReferenceEquals(expr, m_expr))
+            {
+                return;
+            }
+
+            if (expr != null && expr.Equals(m_expr))
+            {
+                return;
+            }
+
+            m_expr = expr;
+            m_errorMessage = null;
+
+            this.Canvas.Invalidate();
+        }
+
+        void SetErrorMessage(string errorMessage)
+        {
+            if (errorMessage == m_errorMessage)
+            {
+                return;
+            }
+
+            m_expr = null;
+            m_errorMessage = errorMessage;
+
+            this.Canvas.Invalidate();
+        }
+
+        private void TextBox_TextChanged(object sender, Microsoft.UI.Xaml.Controls.TextChangedEventArgs e)
+        {
+            try
+            {
+                string input = FormulaTextBox.Text;
+                if (!string.IsNullOrWhiteSpace(input))
+                {
+                    SetExpression(m_parser.Parse(input));
+                }
+            }
+            catch (ParseException x)
+            {
+                SetErrorMessage(x.ToString());
             }
         }
     }

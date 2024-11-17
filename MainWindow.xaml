@@ -10,6 +10,16 @@
     mc:Ignorable="d">
 
     <Grid>
-        <canvas:CanvasControl CreateResources="CanvasControl_CreateResources" Draw="CanvasControl_Draw" ManipulationMode="Scale,TranslateX,TranslateY" ManipulationDelta="CanvasControl_ManipulationDelta"/>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        
+        <canvas:CanvasControl x:Name="Canvas" Grid.RowSpan="2" CreateResources="CanvasControl_CreateResources" Draw="CanvasControl_Draw" ManipulationMode="Scale,TranslateX,TranslateY" ManipulationDelta="CanvasControl_ManipulationDelta"/>
+
+        <StackPanel Orientation="Horizontal" Margin="10">
+            <TextBlock Text="f(x) =" VerticalAlignment="Center"/>
+            <TextBox x:Name="FormulaTextBox" Width="300" PlaceholderText="Type formula" TextChanged="TextBox_TextChanged"/>
+        </StackPanel>
     </Grid>
 </Window>
