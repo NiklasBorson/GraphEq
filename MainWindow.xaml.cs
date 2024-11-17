@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.Graphics.Canvas.UI.Xaml;
+using Microsoft.UI.Xaml.Input;
 using System.Numerics;
 using Microsoft.Graphics.Canvas;
 using Microsoft.Graphics.Canvas.Text;
@@ -19,8 +20,8 @@ namespace GraphEq
         static readonly Windows.UI.Color AxisColor = Windows.UI.Color.FromArgb(255, 20, 20, 20);
         static readonly Windows.UI.Color CurveColor = Windows.UI.Color.FromArgb(255, 255, 0, 0);
 
-        float m_scale = 64;
-        Vector2 m_origin = new Vector2(200, 400);
+        float m_scale;
+        Vector2 m_origin;
 
         Dictionary<float, CanvasTextLayout> m_labels = new Dictionary<float, CanvasTextLayout>();
         CanvasTextFormat m_labelFormat = new CanvasTextFormat
@@ -36,31 +37,48 @@ namespace GraphEq
             this.InitializeComponent();
         }
 
+        private void SetDefaultTransform(CanvasControl sender)
+        {
+            m_scale = 50;
+            m_origin = new Vector2(
+                (float)sender.ActualWidth / 2,
+                (float)sender.ActualHeight / 2
+                );
+        }
+
         private void CanvasControl_Draw(CanvasControl sender, CanvasDrawEventArgs args)
         {
-            var g = args.DrawingSession;
+            if (m_scale == 0)
+            {
+                SetDefaultTransform(sender);
+            }
 
-            g.Clear(new Vector4(0.8f, 0.8f, 0.8f, 1.0f));
+            args.DrawingSession.Clear(BackColor);
 
-            DrawAxes(sender, g);
+            DrawAxes(sender, args.DrawingSession);
         }
 
         // Compute the "axis unit", which is the distance in logical units
-        // between labeled graduations on an axis, such that:
-        //  - The axis unit is always a power of 2
-        //  - Unit * scale is in a fixed range
+        // between labeled graduations on an axis.
         private static float AxisUnitFromScale(float scale)
         {
             // Minimum spacing between graduations in DIPs.
-            const float minSpacing = 32;
+            const float minSpacing = 50;
 
-            // Scale        Unit    Spacing (Unit * Scale)
-            // ---------------------------------
-            // 16..32       2       32..64
-            // 32..64       1       32..64
-            // 64..128      0.5     32..64
+            // Choose the unit such that (scale * unit) is between
+            // minSpacing and (2 * minSpacing). For example:
+            //
+            //      scale        unit    scale * unit
+            //      ---------------------------------
+            //      25..50       2       50..100
+            //      50..100      1       50..100
+            //      100..200     0.5     50..100
+            //
+            // Every doubling of the scale halves the unit.
+            // The unit is always a power of 2.
             //
             float e = -float.Floor(float.Log2(scale / minSpacing));
+            e = float.Max(-3, e); // limit the minimum unit
             return float.Pow(2, e);
         }
 
@@ -92,7 +110,7 @@ namespace GraphEq
             float unit = AxisUnitFromScale(m_scale);
             float spacing = unit * m_scale;
             const float tickSize = 5;
-            const float labelOffset = tickSize + 2;
+            const float labelOffset = 10;
 
             // Draw the X axis.
             DrawHorizontalAxisLine(g, m_origin.Y, 0, right);
@@ -146,10 +164,20 @@ namespace GraphEq
                 if (i != 0)
                 {
                     float y = m_origin.Y + (i * spacing);
-                    var label = GetLabel(canvas, i * unit);
+                    var label = GetLabel(canvas, i * -unit);
                     g.DrawTextLayout(label, m_origin.X + labelOffset, y, AxisColor);
                 }
             }
+        }
+
+        private void CanvasControl_ManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
+        {
+            var delta = e.Delta;
+
+            m_scale *= delta.Scale;
+            m_origin += delta.Translation.ToVector2();
+
+            (sender as CanvasControl)?.Invalidate();
         }
     }
 }
