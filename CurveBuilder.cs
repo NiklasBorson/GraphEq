@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Numerics;
 using Microsoft.Graphics.Canvas;
 using Microsoft.Graphics.Canvas.Geometry;
-using Windows.Storage.Streams;
 
 namespace GraphEq
 {
@@ -11,6 +9,8 @@ namespace GraphEq
 
     internal struct CurveBuilder : IDisposable
     {
+        static readonly Windows.UI.Color CurveColor = Windows.UI.Color.FromArgb(255, 255, 0, 0);
+
         CanvasPathBuilder m_pathBuilder;
         MathFn m_fn;
         double m_scale;
@@ -25,6 +25,24 @@ namespace GraphEq
         }
         State m_state = State.Empty;
         Vector2 m_lastPoint;
+
+        public static void Draw(
+            CanvasDrawingSession drawingSession,
+            ICanvasResourceCreator resourceCreator,
+            MathFn fn,
+            float scale,
+            Vector2 origin,
+            float canvasWidth
+            )
+        {
+            using (var builder = new CurveBuilder(resourceCreator, fn, scale, origin))
+            {
+                using (var geometry = builder.CreateGeometry(canvasWidth))
+                {
+                    drawingSession.DrawGeometry(geometry, new Vector2(), CurveColor, 2.0f);
+                }
+            }
+        }
 
         public CurveBuilder(ICanvasResourceCreator resourceCreator, MathFn fn, float scale, Vector2 origin)
         {
@@ -64,8 +82,8 @@ namespace GraphEq
             // Invoke the function.
             value = m_fn(value);
 
-            // Convert back to DIPs.
-            value *= m_scale;
+            // Convert back to DIPs and flip so positive Y is up.
+            value *= -m_scale;
             value += m_origin.Y;
 
             return (float)value;
