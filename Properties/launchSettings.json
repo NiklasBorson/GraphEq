@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "GraphEq (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "GraphEq (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
