@@ -19,9 +19,9 @@ namespace GraphEq
         float m_scale;
         Vector2 m_origin;
 
-        // Use a hard-coded function for test purposes.
-        VariableExpr m_x = new VariableExpr("x", 0);
-        Parser m_parser = null;
+        // Parser and expression state.
+        ExpressionParser m_parser = new ExpressionParser();
+        string[] m_varNames = new string[] { "x" };
         Expr m_expr = null;
         string m_errorMessage = null;
 
@@ -30,10 +30,6 @@ namespace GraphEq
 
         public MainWindow()
         {
-            m_parser = new Parser(
-                (string varName) => varName == "x" ? m_x : null
-                );
-
             this.InitializeComponent();
         }
         
@@ -80,17 +76,10 @@ namespace GraphEq
                 // Draw the axes.
                 m_axisRenderer.DrawAxes(args.DrawingSession, sender, m_scale, m_origin);
 
-                // Draw the curve.
-                MathFn fn = (double x) =>
-                {
-                    m_x.Value = x;
-                    return m_expr.Eval();
-                };
-
                 CurveBuilder.Draw(
                     args.DrawingSession,
                     sender,
-                    fn,
+                    m_expr,
                     m_scale,
                     m_origin,
                     (float)sender.ActualWidth
@@ -140,7 +129,7 @@ namespace GraphEq
                 string input = FormulaTextBox.Text;
                 if (!string.IsNullOrWhiteSpace(input))
                 {
-                    SetExpression(m_parser.Parse(input));
+                    SetExpression(m_parser.Parse(input, m_varNames));
                 }
             }
             catch (ParseException x)

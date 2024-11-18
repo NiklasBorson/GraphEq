@@ -5,14 +5,13 @@ using Microsoft.Graphics.Canvas.Geometry;
 
 namespace GraphEq
 {
-    delegate double MathFn(double x);
-
     internal struct CurveBuilder : IDisposable
     {
         static readonly Windows.UI.Color CurveColor = Windows.UI.Color.FromArgb(255, 255, 0, 0);
 
         CanvasPathBuilder m_pathBuilder;
-        MathFn m_fn;
+        Expr m_expr;
+        double[] m_paramValues = new double[1];
         double m_scale;
         double m_inverseScale;
         Vector2 m_origin;
@@ -29,13 +28,13 @@ namespace GraphEq
         public static void Draw(
             CanvasDrawingSession drawingSession,
             ICanvasResourceCreator resourceCreator,
-            MathFn fn,
+            Expr expr,
             float scale,
             Vector2 origin,
             float canvasWidth
             )
         {
-            using (var builder = new CurveBuilder(resourceCreator, fn, scale, origin))
+            using (var builder = new CurveBuilder(resourceCreator, expr, scale, origin))
             {
                 using (var geometry = builder.CreateGeometry(canvasWidth))
                 {
@@ -44,10 +43,10 @@ namespace GraphEq
             }
         }
 
-        public CurveBuilder(ICanvasResourceCreator resourceCreator, MathFn fn, float scale, Vector2 origin)
+        public CurveBuilder(ICanvasResourceCreator resourceCreator, Expr expr, float scale, Vector2 origin)
         {
             m_pathBuilder = new CanvasPathBuilder(resourceCreator);
-            m_fn = fn;
+            m_expr = expr;
             m_scale = scale;
             m_inverseScale = 1.0 / m_scale;
             m_origin = origin;
@@ -79,8 +78,9 @@ namespace GraphEq
             value -= m_origin.X;
             value *= m_inverseScale;
 
-            // Invoke the function.
-            value = m_fn(value);
+            // Invoke the expression.
+            m_paramValues[0] = value;
+            value = m_expr.Eval(m_paramValues);
 
             // Convert back to DIPs and flip so positive Y is up.
             value *= -m_scale;

@@ -17,27 +17,28 @@ namespace GraphEq
 
     }
 
-    internal class Parser
+    internal class ExpressionParser
     {
         Lexer m_lexer = new Lexer();
-        TryGetVariable m_tryGetVariable;
+        string[] m_varNames;
 
-        public Parser(TryGetVariable tryGetVariable)
+        public ExpressionParser()
         {
-            m_tryGetVariable = tryGetVariable;
         }
 
-        public Expr Parse(string input)
+        public Expr Parse(string input, string[] varNames)
         {
             m_lexer.InputString = input;
             CheckLexerError();
+
+            m_varNames = varNames;
 
             var expr = ParseExpression();
 
             if (m_lexer.TokenType != TokenType.None)
                 throw new ParseException(m_lexer, "Unexpected token.");
 
-            return expr;
+            return expr.Simplify();
         }
 
         void CheckLexerError()
@@ -90,7 +91,8 @@ namespace GraphEq
                 }
 
                 // Replace the left-hand expression with the binary expression.
-                left = new BinaryExpr(left, right, op);
+                left = new FunctionExpr(op, left, right);
+
                 op = nextOp;
             }
             return left;
@@ -98,22 +100,21 @@ namespace GraphEq
 
         static BinaryOp GetBinaryOp(SymbolId id)
         {
-            switch (id)
+            foreach (var op in FunctionExpr.BinaryOperators)
             {
-                case SymbolId.Plus: return BinaryExpr.AddOp;
-                case SymbolId.Minus: return BinaryExpr.SubtractOp;
-                case SymbolId.Multiply: return BinaryExpr.MultiplyOp;
-                case SymbolId.Divide: return BinaryExpr.DivideOp;
-                case SymbolId.Caret: return BinaryExpr.PowerOp;
-                default: return null;
+                if (op.Symbol == id)
+                {
+                    return op;
+                }
             }
+            return null;
         }
 
-        static UnaryOp GetUnaryPrefixOp(SymbolId id)
+        static Function GetUnaryPrefixOp(SymbolId id)
         {
             switch (id)
             {
-                case SymbolId.Minus: return UnaryExpr.NegativeOp;
+                case SymbolId.Minus: return (double[] args) => -args[0];
                 default: return null;
             }
         }
@@ -161,17 +162,19 @@ namespace GraphEq
                 else
                 {
                     // Is it a variable?
-                    VariableExpr varExpr = m_tryGetVariable(name);
-                    if (varExpr != null)
-                        return varExpr;
+                    for (int i = 0; i < m_varNames.Length; i++)
+                    {
+                        if (m_varNames[i] == name)
+                        {
+                            return new VariableExpr(i);
+                        }
+                    }
 
                     // Is it a named constant?
-                    foreach (var namedConst in NamedConstExpr.Constants)
+                    switch (name)
                     {
-                        if (namedConst.Name == name)
-                        {
-                            return namedConst;
-                        }
+                        case "pi": return new ConstExpr(double.Pi);
+                        case "e": return new ConstExpr(double.E);
                     }
 
                     throw new ParseException(m_lexer, $"Variable or constant {name} not defined.");
@@ -197,22 +200,22 @@ namespace GraphEq
 
                 Advance();
                 var expr = ParseUnary();
-                return new UnaryExpr(expr, op);
+                return new FunctionExpr(op, Precedence.UnaryPrefix, new Expr[] { expr });
             }
         }
 
         Expr CreateFunctionExpression(string name, List<Expr> args)
         {
-            foreach (var func in UnaryFunctionExpr.Functions)
+            foreach (var func in FunctionExpr.Functions)
             {
-                if (func.Key == name)
+                if (func.Name == name)
                 {
-                    if (args.Count != 1)
+                    if (func.ParamCount != args.Count)
                     {
-                        throw new ParseException(m_lexer, $"One argument expected for {name}().");
+                        throw new ParseException(m_lexer, $"{func.ParamCount} arguments expected for {name}().");
                     }
 
-                    return new UnaryFunctionExpr(name, args[0], func.Value);
+                    return new FunctionExpr(func.Func, Precedence.Atomic, args);
                 }
             }
 
