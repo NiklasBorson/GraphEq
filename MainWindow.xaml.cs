@@ -2,6 +2,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.Graphics.Canvas.UI.Xaml;
 using Microsoft.UI.Xaml.Input;
 using System.Numerics;
+using System.Collections.Generic;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -21,7 +22,8 @@ namespace GraphEq
         Vector2 m_origin;
 
         // Parser and expression state.
-        ExpressionParser m_parser = new ExpressionParser();
+        Dictionary<string, FunctionDef> m_userFunctions = new Dictionary<string, FunctionDef>();
+        Parser m_parser = new Parser();
         string[] m_varNames = new string[] { "x" };
         Expr m_expr = null;
         string m_errorMessage = null;
@@ -94,18 +96,24 @@ namespace GraphEq
 
         void SetExpression(Expr expr)
         {
-            if (object.ReferenceEquals(expr, m_expr))
+            if (m_errorMessage == null)
             {
-                return;
-            }
+                if (object.ReferenceEquals(expr, m_expr))
+                {
+                    return;
+                }
 
-            if (expr != null && expr.IsEquivalent(m_expr))
+                if (expr != null && expr.IsEquivalent(m_expr))
+                {
+                    return;
+                }
+            }
+            else
             {
-                return;
+                m_errorMessage = null;
             }
 
             m_expr = expr;
-            m_errorMessage = null;
 
             this.Canvas.Invalidate();
         }
@@ -123,23 +131,63 @@ namespace GraphEq
             this.Canvas.Invalidate();
         }
 
-        private void TextBox_TextChanged(object sender, Microsoft.UI.Xaml.Controls.TextChangedEventArgs e)
+        void ReparseFormula()
         {
             try
             {
-                string input = FormulaTextBox.Text;
-                if (!string.IsNullOrWhiteSpace(input))
+                if (m_userFunctions != null)
                 {
-                    SetExpression(m_parser.Parse(input, m_varNames));
-                }
-                else
-                {
-                    SetExpression(null);
+                    string input = FormulaTextBox.Text;
+                    if (!string.IsNullOrWhiteSpace(input))
+                    {
+                        SetExpression(m_parser.ParseExpression(input, m_userFunctions, m_varNames));
+                    }
+                    else
+                    {
+                        SetExpression(null);
+                    }
                 }
             }
             catch (ParseException x)
             {
-                SetErrorMessage(x.Message);
+                SetErrorMessage($"Error in formula column {x.InputPos}:\n{x.Message}");
+            }
+        }
+
+        private void TextBox_TextChanged(object sender, Microsoft.UI.Xaml.Controls.TextChangedEventArgs e)
+        {
+            ReparseFormula();
+        }
+
+        private void FunctionsButton_Click(object sender, RoutedEventArgs e)
+        {
+            FunctionsPane.Visibility = Visibility.Visible;
+            FunctionsTextBox.Focus(FocusState.Keyboard);
+        }
+
+        private void CloseFunctionsButton_Click(object sender, RoutedEventArgs e)
+        {
+            FunctionsPane.Visibility = Visibility.Collapsed;
+        }
+
+        private void FunctionsTextBox_TextChanged(object sender, Microsoft.UI.Xaml.Controls.TextChangedEventArgs e)
+        {
+            try
+            {
+                m_userFunctions = m_parser.ParseFunctionDefs(FunctionsTextBox.Text);
+                ReparseFormula();
+            }
+            catch (ParseException x)
+            {
+                m_userFunctions = null;
+                if (!string.IsNullOrEmpty(m_parser.FunctionName))
+                {
+                    SetErrorMessage($"Error in {m_parser.FunctionName} function line {m_parser.LineNumber}, column {x.InputPos}:\n{x.Message}");
+                }
+                else
+                {
+                    SetErrorMessage($"Error in function definitions line {m_parser.LineNumber}:\n{x.Message}");
+                }
             }
         }
     }
