@@ -14,6 +14,7 @@ namespace GraphEq
     public sealed partial class MainWindow : Window
     {
         static readonly Windows.UI.Color BackColor = Windows.UI.Color.FromArgb(255, 220, 220, 220);
+        static readonly Windows.UI.Color ErrorMessaegColor = Windows.UI.Color.FromArgb(255, 128, 0, 0);
 
         // Scale factor and origin for the canvas.
         float m_scale;
@@ -87,7 +88,7 @@ namespace GraphEq
             }
             else if (m_errorMessage != null)
             {
-                // TODO
+                args.DrawingSession.DrawText(m_errorMessage, 20, 80, ErrorMessaegColor);
             }
         }
 
@@ -98,7 +99,7 @@ namespace GraphEq
                 return;
             }
 
-            if (expr != null && expr.Equals(m_expr))
+            if (expr != null && expr.IsEquivalent(m_expr))
             {
                 return;
             }
@@ -134,7 +135,7 @@ namespace GraphEq
             }
             catch (ParseException x)
             {
-                SetErrorMessage(x.ToString());
+                SetErrorMessage(x.Message);
             }
         }
     }

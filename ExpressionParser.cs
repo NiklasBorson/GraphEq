@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace GraphEq
 {
@@ -36,7 +37,7 @@ namespace GraphEq
             var expr = ParseExpression();
 
             if (m_lexer.TokenType != TokenType.None)
-                throw new ParseException(m_lexer, "Unexpected token.");
+                throw new ParseException(m_lexer, "Invalid expression.");
 
             return expr.Simplify();
         }
@@ -171,13 +172,19 @@ namespace GraphEq
                     }
 
                     // Is it a named constant?
-                    switch (name)
+                    ConstExpr constExpr;
+                    if (ConstExpr.NameConstants.TryGetValue(name, out constExpr))
                     {
-                        case "pi": return new ConstExpr(double.Pi);
-                        case "e": return new ConstExpr(double.E);
+                        return constExpr;
                     }
 
-                    throw new ParseException(m_lexer, $"Variable or constant {name} not defined.");
+                    var b = new StringBuilder();
+                    b.AppendFormat("Variable or constant {0} not defined. Named constants are:", name);
+                    foreach (var s in ConstExpr.NameConstants.Keys)
+                    {
+                        b.AppendFormat("\n - {0}", s);
+                    }
+                    throw new ParseException(m_lexer, b.ToString());
                 }
             }
             else if (m_lexer.TokenSymbol == SymbolId.LeftParen)
@@ -196,7 +203,7 @@ namespace GraphEq
             {
                 var op = GetUnaryPrefixOp(m_lexer.TokenSymbol);
                 if (op == null)
-                    throw new ParseException(m_lexer, "Syntax error.");
+                    throw new ParseException(m_lexer, "Invalid expression.");
 
                 Advance();
                 var expr = ParseUnary();
@@ -219,7 +226,14 @@ namespace GraphEq
                 }
             }
 
-            throw new ParseException(m_lexer, $"Unknown function: {name}.");
+            // Build the error message string.
+            var b = new StringBuilder();
+            b.AppendFormat("Unknown function: {0}. Known functions are:", name);
+            foreach (var func in FunctionExpr.Functions)
+            {
+                b.AppendFormat("\n - {0}", func.Name);
+            }
+            throw new ParseException(m_lexer, b.ToString());
         }
     }
 }
