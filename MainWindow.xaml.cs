@@ -132,6 +132,10 @@ namespace GraphEq
                 {
                     SetExpression(m_parser.Parse(input, m_varNames));
                 }
+                else
+                {
+                    SetExpression(null);
+                }
             }
             catch (ParseException x)
             {
