@@ -67,7 +67,7 @@ namespace GraphEq
 
     delegate double Function(double[] paramValues);
 
-    record FunctionDef(string Name, int ParamCount, Function Func);
+    record FunctionDef(string Signature, int ParamCount, Function Func);
 
     record BinaryOp(SymbolId Symbol, Precedence Precedence, Function Func);
 
@@ -173,43 +173,44 @@ namespace GraphEq
         public override Precedence Precedence => m_precedence;
 
         // Built-in functions.
-        public static readonly FunctionDef[] Functions =
+        public static readonly Dictionary<string, FunctionDef> Functions = new Dictionary<string, FunctionDef>
         {
+            { "sqrt",
             new FunctionDef(
-                "sqrt",
+                "sqrt(n)",
                 1,
                 (double[] args) => double.Sqrt(args[0])
-                ),
-            new FunctionDef(
-                "ln",
+                ) },
+            { "ln", new FunctionDef(
+                "ln(n)",
                 1,
                 (double[] args) => double.Log(args[0])
-                ),
-            new FunctionDef(
-                "log10",
+                ) },
+            { "log10", new FunctionDef(
+                "log10(n)",
                 1,
                 (double[] args) => double.Log10(args[0])
-                ),
-            new FunctionDef(
-                "log2",
+                ) },
+            { "log2", new FunctionDef(
+                "log2(n)",
                 1,
                 (double[] args) => double.Log2(args[0])
-                ),
-            new FunctionDef(
-                "sin",
+                ) },
+            { "sin", new FunctionDef(
+                "sin(n)",
                 1,
                 (double[] args) => double.Sin(args[0])
-                ),
-            new FunctionDef(
-                "cos",
+                ) },
+            { "cos", new FunctionDef(
+                "cos(n)",
                 1,
                 (double[] args) => double.Cos(args[0])
-                ),
-            new FunctionDef(
-                "tan",
+                ) },
+            { "tan", new FunctionDef(
+                "tan(n)",
                 1,
                 (double[] args) => double.Tan(args[0])
-                )
+                ) }
         };
 
         // Binary operators.

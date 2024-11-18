@@ -213,25 +213,23 @@ namespace GraphEq
 
         Expr CreateFunctionExpression(string name, List<Expr> args)
         {
-            foreach (var func in FunctionExpr.Functions)
+            FunctionDef func;
+            if (FunctionExpr.Functions.TryGetValue(name, out func))
             {
-                if (func.Name == name)
+                if (func.ParamCount != args.Count)
                 {
-                    if (func.ParamCount != args.Count)
-                    {
-                        throw new ParseException(m_lexer, $"{func.ParamCount} arguments expected for {name}().");
-                    }
-
-                    return new FunctionExpr(func.Func, Precedence.Atomic, args);
+                    throw new ParseException(m_lexer, $"{func.ParamCount} arguments expected for {name}().");
                 }
+
+                return new FunctionExpr(func.Func, Precedence.Atomic, args);
             }
 
             // Build the error message string.
             var b = new StringBuilder();
             b.AppendFormat("Unknown function: {0}. Known functions are:", name);
-            foreach (var func in FunctionExpr.Functions)
+            foreach (var funcDef in FunctionExpr.Functions.Values)
             {
-                b.AppendFormat("\n - {0}", func.Name);
+                b.AppendFormat("\n - {0}", funcDef.Signature);
             }
             throw new ParseException(m_lexer, b.ToString());
         }
