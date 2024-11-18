@@ -181,10 +181,11 @@ namespace GraphEq
                 1,
                 (double[] args) => double.Sqrt(args[0])
                 ) },
-            { "ln", new FunctionDef(
-                "ln(n)",
+            { "sqr",
+            new FunctionDef(
+                "sqr(n)",
                 1,
-                (double[] args) => double.Log(args[0])
+                (double[] args) => args[0] * args[0]
                 ) },
             { "log10", new FunctionDef(
                 "log10(n)",
@@ -195,6 +196,26 @@ namespace GraphEq
                 "log2(n)",
                 1,
                 (double[] args) => double.Log2(args[0])
+                ) },
+            { "ln", new FunctionDef(
+                "ln(n)",
+                1,
+                (double[] args) => double.Log(args[0])
+                ) },
+            { "exp", new FunctionDef(
+                "exp(n)",
+                1,
+                (double[] args) => double.Exp(args[0])
+                ) },
+            { "exp10", new FunctionDef(
+                "exp10(n)",
+                1,
+                (double[] args) => double.Exp10(args[0])
+                ) },
+            { "exp2", new FunctionDef(
+                "exp2(n)",
+                1,
+                (double[] args) => double.Exp2(args[0])
                 ) },
             { "sin", new FunctionDef(
                 "sin(n)",

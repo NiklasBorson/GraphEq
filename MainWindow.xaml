@@ -15,7 +15,14 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         
-        <canvas:CanvasControl x:Name="Canvas" Grid.RowSpan="2" CreateResources="CanvasControl_CreateResources" Draw="CanvasControl_Draw" ManipulationMode="Scale,TranslateX,TranslateY" ManipulationDelta="CanvasControl_ManipulationDelta"/>
+        <canvas:CanvasControl 
+            x:Name="Canvas" 
+            Grid.RowSpan="2" 
+            CreateResources="CanvasControl_CreateResources" 
+            Draw="CanvasControl_Draw" 
+            ManipulationMode="Scale,TranslateX,TranslateY" 
+            ManipulationDelta="CanvasControl_ManipulationDelta"
+            PointerWheelChanged="CanvasControl_PointerWheelChanged"/>
 
         <StackPanel Orientation="Horizontal" Margin="10">
             <TextBlock Text="f(x) =" VerticalAlignment="Center"/>
@@ -30,7 +37,12 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
             <Button Content="&#xE711;" FontFamily="Segoe MDL2 Assets" Click="CloseFunctionsButton_Click"/>
-            <TextBox x:Name="FunctionsTextBox" Grid.Row="1" AcceptsReturn="True" TextChanged="FunctionsTextBox_TextChanged" PlaceholderText="Type one function per line, e.g.,&#10;r(x) = 1/x&#10;pow(x,y) = x^y"/>
+            <TextBox 
+                x:Name="FunctionsTextBox" 
+                Grid.Row="1" 
+                AcceptsReturn="True" 
+                TextChanged="FunctionsTextBox_TextChanged" 
+                PlaceholderText="Type one function per line, e.g.,&#10;r(x) = 1/x&#10;pow(x,y) = x^y"/>
         </Grid>
 
     </Grid>

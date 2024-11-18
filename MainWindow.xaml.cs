@@ -3,6 +3,7 @@ using Microsoft.Graphics.Canvas.UI.Xaml;
 using Microsoft.UI.Xaml.Input;
 using System.Numerics;
 using System.Collections.Generic;
+using Microsoft.UI.Xaml.Controls;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -44,6 +45,20 @@ namespace GraphEq
 
                 m_scale *= delta.Scale;
                 m_origin += delta.Translation.ToVector2();
+
+                this.Canvas.Invalidate();
+            }
+        }
+
+        private void CanvasControl_PointerWheelChanged(object sender, PointerRoutedEventArgs e)
+        {
+            var ctrl = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(Windows.System.VirtualKey.Control);
+
+            if (ctrl.HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down))
+            {
+                var delta = e.GetCurrentPoint(Canvas).Properties.MouseWheelDelta;
+
+                m_scale *= float.Pow(2.0f, delta * 0.001f);
 
                 this.Canvas.Invalidate();
             }
