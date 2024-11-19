@@ -40,7 +40,7 @@ namespace GraphEq
             return (other as ConstExpr)?.m_value == m_value;
         }
 
-        public static readonly Dictionary<string, ConstExpr> NameConstants = new Dictionary<string, ConstExpr>
+        public static readonly Dictionary<string, ConstExpr> NamedConstants = new Dictionary<string, ConstExpr>
         {
             { "e", new ConstExpr(double.E) },
             { "pi", new ConstExpr(double.Pi) }

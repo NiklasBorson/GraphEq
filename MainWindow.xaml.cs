@@ -43,15 +43,24 @@ namespace GraphEq
             get
             {
                 var b = new StringBuilder();
-                b.Append("Functions:");
+                b.Append(
+                    "Operators:\n" +
+                    " +  Plus\n" +
+                    " -  Minus\n" +
+                    " *  Multiply\n" +
+                    " /  Divide\n" +
+                    " ^  Power\n" +
+                    "\n" +
+                    "Intrinsic functions:"
+                    );
                 foreach (var funcDef in FunctionExpr.Functions.Values)
                 {
-                    b.AppendFormat("\n - {0}", funcDef.Signature);
+                    b.AppendFormat("\n \x2022 {0}", funcDef.Signature);
                 }
                 b.Append("\n\nConstants:");
-                foreach (var s in ConstExpr.NameConstants.Keys)
+                foreach (var s in ConstExpr.NamedConstants.Keys)
                 {
-                    b.AppendFormat("\n - {0}", s);
+                    b.AppendFormat("\n \x2022 {0}", s);
                 }
                 return b.ToString();
             }
@@ -201,25 +210,16 @@ namespace GraphEq
             Canvas.Invalidate();
         }
 
-        private void UserFunctionsButton_Click(object sender, RoutedEventArgs e)
+        private void OpenSidePanel_Click(object sender, RoutedEventArgs e)
         {
-            HelpScrollViewer.Visibility = Visibility.Collapsed;
-            UserFunctionsScrollViewer.Visibility = Visibility.Visible;
-            FunctionsPane.Visibility = Visibility.Visible;
-            UserFunctionsTextBox.Focus(FocusState.Keyboard);
+            SidePanel.Visibility = Visibility.Visible;
         }
 
-        private void HelpButton_Click(object sender, RoutedEventArgs e)
+        private void CloseSidePanel_Click(object sender, RoutedEventArgs e)
         {
-            UserFunctionsScrollViewer.Visibility = Visibility.Collapsed;
-            HelpScrollViewer.Visibility = Visibility.Visible;
-            FunctionsPane.Visibility = Visibility.Visible;
+            SidePanel.Visibility = Visibility.Collapsed;
         }
 
-        private void CloseFunctionsButton_Click(object sender, RoutedEventArgs e)
-        {
-            FunctionsPane.Visibility = Visibility.Collapsed;
-        }
 
         private void UserFunctionsTextBox_TextChanged(object sender, Microsoft.UI.Xaml.Controls.TextChangedEventArgs e)
         {

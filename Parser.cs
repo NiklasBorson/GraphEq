@@ -268,7 +268,7 @@ namespace GraphEq
 
                     // Is it a named constant?
                     ConstExpr constExpr;
-                    if (ConstExpr.NameConstants.TryGetValue(name, out constExpr))
+                    if (ConstExpr.NamedConstants.TryGetValue(name, out constExpr))
                     {
                         return constExpr;
                     }
