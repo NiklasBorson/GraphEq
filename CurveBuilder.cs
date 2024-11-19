@@ -105,7 +105,7 @@ namespace GraphEq
             {
                 // The first point is visible. Interpolate to find a connected point to its
                 // left so we can draw asymptotes correctly.
-                var pt = FindConnectedPoint(first, first.X - 1, canvasHeight);
+                var pt = FindFigureEndPoint(first, first.X - 1, canvasHeight);
                 m_pathBuilder.BeginFigure(pt.ToVector2());
                 m_pathBuilder.AddLine(first.ToVector2());
             }
@@ -125,49 +125,52 @@ namespace GraphEq
             var last = points[points.Length - 1];
             if (last.X < canvasWidth && last.Y > 0 && last.Y < canvasHeight)
             {
-                var pt = FindConnectedPoint(last, last.X + 1, canvasHeight);
+                var pt = FindFigureEndPoint(last, last.X + 1, canvasHeight);
                 m_pathBuilder.AddLine(pt.ToVector2());
             }
 
             m_pathBuilder.EndFigure(CanvasFigureLoop.Open);
         }
 
-        // Searches for a point P on the curve such that:
-        //  - P is connected to start
-        //  - P.X is between start.X and limitX
-        //  - P.Y is off the canvas if possible (if an asymptote)
-        Point FindConnectedPoint(Point start, double limitX, double canvasHeight)
+        // Finds a point P, where:
+        //  - P is on the curve and connected to figurePoint.
+        //  - P.X is in the range figurePoint.X..limitX.
+        //  - P.Y is off canvas if there is an asymptote in the range.
+        Point FindFigureEndPoint(Point figurePoint, double limitX, double canvasHeight)
         {
-            int counter = 100;
+            const int maxIterations = 16;
 
-            while (start.X != limitX && start.Y > 0 && start.Y < canvasHeight)
+            // Use binary search to find a point between figurePoint.X and limitX.
+            // Loop invariants:
+            //  - pt is on the curve and connected to figurePoint.
+            //  - The point we're looking for is in the range pt.X..limitX.
+            var pt = figurePoint;
+            for (int i = 0; i < maxIterations && pt.X != limitX; i++)
             {
-                // Limit the maximum number of iterations.
-                if (--counter == 0)
-                    break;
+                // If pt is off canvas then we've found our point.
+                if (pt.Y <= 0 || pt.Y >= canvasHeight)
+                {
+                    return pt;
+                }
 
-                // Select an intermediate point.
-                double x = (start.X + limitX) / 2;
+                // Select an intermediate point at x.
+                double x = (pt.X + limitX) / 2;
                 double y = GetY(x);
 
-                // If (x,y) is off the curve, move closer to start.
-                if (!double.IsRealNumber(y))
+                // Is x on the curve and connected to pt?
+                if (double.IsRealNumber(y) && IsJoined(pt.X, pt.Y, x, y))
                 {
-                    limitX = x;
-                    continue;
+                    // Connected: narrow the search to x..limitX.
+                    pt = new Point(x, y);
                 }
-
-                // If (x,y) is not connected, move closer to start.
-                if (!IsJoined(start.X, start.Y, x, y))
+                else
                 {
+                    // Not connected: narrow the search to pt..x.
                     limitX = x;
-                    continue;
                 }
-
-                // Narrow the search with (x,y) as the new start point.
-                start = new Point(x, y);
             }
-            return start;
+
+            return pt;
         }
 
         double GetY(double x)
@@ -186,7 +189,7 @@ namespace GraphEq
         bool IsJoined(double x1, double y1, double x2, double y2)
         {
             double dy = double.Abs(y2 - y1);
-            if (dy <= 1.0)
+            if (dy <= 0.25)
                 return true;
 
             if (dy > 1000.0)
