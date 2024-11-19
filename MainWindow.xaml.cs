@@ -64,6 +64,12 @@ namespace GraphEq
             }
         }
 
+        private void CenterButton_Click(object sender, RoutedEventArgs e)
+        {
+            SetDefaultTransform();
+            Canvas.Invalidate();
+        }
+
         private void SetDefaultTransform()
         {
             m_scale = 50;
