@@ -100,7 +100,8 @@ namespace GraphEq
                     m_expr,
                     m_scale,
                     m_origin,
-                    (float)sender.ActualWidth
+                    (float)sender.ActualWidth,
+                    (float)sender.ActualHeight
                     );
             }
             else if (m_errorMessage != null)

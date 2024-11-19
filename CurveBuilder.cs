@@ -15,15 +15,7 @@ namespace GraphEq
         double m_scale;
         double m_inverseScale;
         Vector2 m_origin;
-
-        enum State
-        {
-            Empty,
-            Pending,
-            InFigure
-        }
-        State m_state = State.Empty;
-        Vector2 m_lastPoint;
+        Vector2[] m_figurePoints; // buffer for points in the current figure
 
         public static void Draw(
             CanvasDrawingSession drawingSession,
@@ -31,12 +23,13 @@ namespace GraphEq
             Expr expr,
             float scale,
             Vector2 origin,
-            float canvasWidth
+            float canvasWidth,
+            float canvasHeight
             )
         {
             using (var builder = new CurveBuilder(resourceCreator, expr, scale, origin))
             {
-                using (var geometry = builder.CreateGeometry(canvasWidth))
+                using (var geometry = builder.CreateGeometry(canvasWidth, canvasHeight))
                 {
                     drawingSession.DrawGeometry(geometry, new Vector2(), CurveColor, 2.0f);
                 }
@@ -52,22 +45,121 @@ namespace GraphEq
             m_origin = origin;
         }
 
-        public CanvasGeometry CreateGeometry(float canvasWidth)
+        public CanvasGeometry CreateGeometry(float canvasWidth, float canvasHeight)
         {
-            for (float x = 0; x < canvasWidth; x += 1)
+            // Ensure we have a buffer big enough for the maximum number of points.
+            int maxPoints = (int)float.Ceiling(canvasWidth) + 1;
+            if (m_figurePoints == null || m_figurePoints.Length < maxPoints)
             {
+                m_figurePoints = new Vector2[maxPoints];
+            }
+            int pointCount = 0;
+
+            // Iterate over integral X coordinates from 0 through the width.
+            for (int i = 0; i < maxPoints; i++)
+            {
+                float x = (float)i;
                 float y = GetY(x);
-                if (float.IsRealNumber(y))
+                bool isVisible = y >= 0 && y <= canvasHeight;
+
+                if (pointCount != 0)
                 {
-                    AddPoint(new Vector2(x, y));
+                    // End the current figure if the point is off screen or the curve is not continuous.
+                    bool isJoined = float.IsRealNumber(y) && IsJoined(m_figurePoints[pointCount - 1], new Vector2(x, y));
+                    if (!isVisible || !isJoined)
+                    {
+                        if (isJoined)
+                        {
+                            // Include this point, so the curve doesn't stop before the edge of the window.
+                            m_figurePoints[pointCount++] = new Vector2(x, y);
+                        }
+
+                        // Add the current figure and begin a new one.
+                        AddFigure(m_figurePoints.AsSpan(0, pointCount), canvasWidth, canvasHeight);
+                        pointCount = 0;
+                    }
+                }
+
+                // Add the point to the current figure if it's visible.
+                if (isVisible)
+                {
+                    m_figurePoints[pointCount++] = new Vector2(x, y);
+                }
+            }
+
+            if (pointCount != 0)
+            {
+                AddFigure(m_figurePoints.AsSpan(0, pointCount), canvasWidth, canvasHeight);
+            }
+
+            return CanvasGeometry.CreatePath(m_pathBuilder);
+        }
+
+        void AddFigure(Span<Vector2> points, float canvasWidth, float canvasHeight)
+        {
+            // Begin the figure and add the first point.
+            var first = points[0];
+            if (first.X > 0 && first.Y > 0 && first.Y < canvasHeight)
+            {
+                // The first point is visible. Interpolate to find a connected point to its
+                // left so we can draw asymptotes correctly.
+                var pt = FindConnectedPoint(first, first.X - 1, canvasHeight);
+                m_pathBuilder.BeginFigure(pt);
+                m_pathBuilder.AddLine(first);
+            }
+            else
+            {
+                m_pathBuilder.BeginFigure(first);
+            }
+
+            // Add the remaining points.
+            for (int i = 1; i < points.Length; i++)
+            {
+                m_pathBuilder.AddLine(points[i]);
+            }
+
+            // If the last point is visible, interpolate to find a connected point to its
+            // right so we can draw asymptotes correctly.
+            var last = points[points.Length - 1];
+            if (last.X < canvasWidth && last.Y > 0 && last.Y < canvasHeight)
+            {
+                var pt = FindConnectedPoint(last, last.X + 1, canvasHeight);
+                m_pathBuilder.AddLine(pt);
+            }
+
+            m_pathBuilder.EndFigure(CanvasFigureLoop.Open);
+        }
+
+        // Searches for a point P on the curve such that:
+        //  - P is connected to start
+        //  - P.X is between start.X and xLim
+        //  - P.Y is out of view if possible (if near an asymptote)
+        Vector2 FindConnectedPoint(Vector2 start, float xLim, float canvasHeight)
+        {
+            for (int i = 0; i < 10 && start.X != xLim; i++)
+            {
+                // Interpolate between start and xLim.
+                float x = (start.X + xLim) / 2;
+                float y = GetY(x);
+
+                if (!float.IsRealNumber(y) || !IsJoined(start, new Vector2(x, y)))
+                {
+                    // (x, y) is not connected, so move closer to start.
+                    xLim = x;
                 }
                 else
                 {
-                    EndFigure();
+                    // (x, y) is connected, so make it the new start point.
+                    start = new Vector2(x, y);
+
+                    // If we're off the canvas then this is our point.
+                    if (y <= 0 || y >= canvasHeight)
+                    {
+                        return start;
+                    }
                 }
             }
-            EndFigure();
-            return CanvasGeometry.CreatePath(m_pathBuilder);
+            return start;
         }
 
         float GetY(float x)
@@ -87,47 +179,6 @@ namespace GraphEq
             value += m_origin.Y;
 
             return (float)value;
-        }
-
-        void EndFigure()
-        {
-            if (m_state == State.InFigure)
-            {
-                m_pathBuilder.EndFigure(CanvasFigureLoop.Open);
-            }
-            m_state = State.Empty;
-        }
-
-        void AddPoint(Vector2 point)
-        {
-            // Check for discontinuity.
-            if (m_state != State.Empty && !IsJoined(m_lastPoint, point))
-            {
-                EndFigure();
-            }
-
-            switch (m_state)
-            {
-                case State.Empty:
-                    // No points have been added.
-                    // Remember the new point, but don't begin a figure yet.
-                    m_state = State.Pending;
-                    break;
-
-                case State.Pending:
-                    // We now have two points, so begin the figure.
-                    m_pathBuilder.BeginFigure(m_lastPoint);
-                    m_pathBuilder.AddLine(point);
-                    m_state = State.InFigure;
-                    break;
-
-                case State.InFigure:
-                    // We're in a figure, so add the new point.
-                    m_pathBuilder.AddLine(point);
-                    break;
-            }
-
-            m_lastPoint = point;
         }
 
         bool IsJoined(Vector2 point0, Vector2 point1)
