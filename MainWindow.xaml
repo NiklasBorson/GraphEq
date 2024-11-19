@@ -31,8 +31,9 @@
         </StackPanel>
 
         <StackPanel Orientation="Horizontal" Margin="10" HorizontalAlignment="Right">
-            <Button Content="Center" Click="CenterButton_Click"/>
-            <Button Content="User Functions" Click="FunctionsButton_Click"/>
+            <Button Content="Center Grid" Click="CenterButton_Click"/>
+            <Button Content="User Functions" Click="UserFunctionsButton_Click"/>
+            <Button Content="Help" Click="HelpButton_Click"/>
         </StackPanel>
 
         <Grid x:Name="FunctionsPane" Width="300" Grid.RowSpan="2" HorizontalAlignment="Right" Background="DarkGray" Padding="2" Visibility="Collapsed">
@@ -41,12 +42,16 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
             <Button Content="&#xE711;" FontFamily="Segoe MDL2 Assets" Click="CloseFunctionsButton_Click"/>
-            <TextBox 
-                x:Name="FunctionsTextBox" 
-                Grid.Row="1" 
-                AcceptsReturn="True" 
-                TextChanged="FunctionsTextBox_TextChanged" 
-                PlaceholderText="Type one function per line, e.g.,&#10;r(x) = 1/x&#10;pow(x,y) = x^y"/>
+            <ScrollViewer x:Name="HelpScrollViewer" Grid.Row="1">
+                <TextBox IsReadOnly="True" AcceptsReturn="True" Text="{x:Bind HelpText,Mode=OneTime}"/>
+            </ScrollViewer>
+            <ScrollViewer x:Name="UserFunctionsScrollViewer" Visibility="Collapsed" Grid.Row="1">
+                <TextBox 
+                    x:Name="UserFunctionsTextBox"
+                    AcceptsReturn="True" 
+                    TextChanged="UserFunctionsTextBox_TextChanged" 
+                    PlaceholderText="Type one function per line, e.g.,&#10;pow(x,y) = x^y"/>
+            </ScrollViewer>
         </Grid>
 
     </Grid>

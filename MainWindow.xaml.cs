@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Input;
 using System.Numerics;
 using System.Collections.Generic;
 using Microsoft.UI.Xaml.Controls;
+using System.Text;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -36,7 +37,26 @@ namespace GraphEq
         {
             this.InitializeComponent();
         }
-        
+
+        string HelpText
+        {
+            get
+            {
+                var b = new StringBuilder();
+                b.Append("Functions:");
+                foreach (var funcDef in FunctionExpr.Functions.Values)
+                {
+                    b.AppendFormat("\n - {0}", funcDef.Signature);
+                }
+                b.Append("\n\nConstants:");
+                foreach (var s in ConstExpr.NameConstants.Keys)
+                {
+                    b.AppendFormat("\n - {0}", s);
+                }
+                return b.ToString();
+            }
+        }
+
         private void CanvasControl_ManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
         {
             if (m_expr != null)
@@ -62,12 +82,6 @@ namespace GraphEq
 
                 this.Canvas.Invalidate();
             }
-        }
-
-        private void CenterButton_Click(object sender, RoutedEventArgs e)
-        {
-            SetDefaultTransform();
-            Canvas.Invalidate();
         }
 
         private void SetDefaultTransform()
@@ -181,10 +195,25 @@ namespace GraphEq
             ReparseFormula();
         }
 
-        private void FunctionsButton_Click(object sender, RoutedEventArgs e)
+        private void CenterButton_Click(object sender, RoutedEventArgs e)
         {
+            SetDefaultTransform();
+            Canvas.Invalidate();
+        }
+
+        private void UserFunctionsButton_Click(object sender, RoutedEventArgs e)
+        {
+            HelpScrollViewer.Visibility = Visibility.Collapsed;
+            UserFunctionsScrollViewer.Visibility = Visibility.Visible;
             FunctionsPane.Visibility = Visibility.Visible;
-            FunctionsTextBox.Focus(FocusState.Keyboard);
+            UserFunctionsTextBox.Focus(FocusState.Keyboard);
+        }
+
+        private void HelpButton_Click(object sender, RoutedEventArgs e)
+        {
+            UserFunctionsScrollViewer.Visibility = Visibility.Collapsed;
+            HelpScrollViewer.Visibility = Visibility.Visible;
+            FunctionsPane.Visibility = Visibility.Visible;
         }
 
         private void CloseFunctionsButton_Click(object sender, RoutedEventArgs e)
@@ -192,11 +221,11 @@ namespace GraphEq
             FunctionsPane.Visibility = Visibility.Collapsed;
         }
 
-        private void FunctionsTextBox_TextChanged(object sender, Microsoft.UI.Xaml.Controls.TextChangedEventArgs e)
+        private void UserFunctionsTextBox_TextChanged(object sender, Microsoft.UI.Xaml.Controls.TextChangedEventArgs e)
         {
             try
             {
-                m_userFunctions = m_parser.ParseFunctionDefs(FunctionsTextBox.Text);
+                m_userFunctions = m_parser.ParseFunctionDefs(UserFunctionsTextBox.Text);
                 ReparseFormula();
             }
             catch (ParseException x)
