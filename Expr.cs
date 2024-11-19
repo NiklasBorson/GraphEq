@@ -231,7 +231,62 @@ namespace GraphEq
                 "tan(n)",
                 1,
                 (double[] args) => double.Tan(args[0])
-                ) }
+                ) },
+            { "asin", new FunctionDef(
+                "asin(n)",
+                1,
+                (double[] args) => double.Asin(args[0])
+                ) },
+            { "acos", new FunctionDef(
+                "acos(n)",
+                1,
+                (double[] args) => double.Acos(args[0])
+                ) },
+            { "atan", new FunctionDef(
+                "atan(n)",
+                1,
+                (double[] args) => double.Atan(args[0])
+                ) },
+            { "atan2", new FunctionDef(
+                "atan2(x,y)",
+                2,
+                (double[] args) => double.Atan2(args[0], args[1])
+                ) },
+            { "abs", new FunctionDef(
+                "abs(n)",
+                1,
+                (double[] args) => double.Abs(args[0])
+                ) },
+            { "max", new FunctionDef(
+                "max(a,b)",
+                2,
+                (double[] args) => double.Max(args[0], args[1])
+                ) },
+            { "min", new FunctionDef(
+                "min(a,b)",
+                2,
+                (double[] args) => double.Min(args[0], args[1])
+                ) },
+            { "round", new FunctionDef(
+                "round(n)",
+                1,
+                (double[] args) => double.Round(args[0])
+                ) },
+            { "floor", new FunctionDef(
+                "floor(n)",
+                1,
+                (double[] args) => double.Floor(args[0])
+                ) },
+            { "ceil", new FunctionDef(
+                "ceil(n)",
+                1,
+                (double[] args) => double.Ceiling(args[0])
+                ) },
+            { "trunc", new FunctionDef(
+                "trunc(n)",
+                1,
+                (double[] args) => double.Truncate(args[0])
+                ) },
         };
 
         // Binary operators.

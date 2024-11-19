@@ -59,7 +59,7 @@ namespace GraphEq
             for (int i = 0; i < maxPoints; i++)
             {
                 float x = (float)i;
-                float y = GetY(x);
+                float y = (float)GetY(x);
                 bool isVisible = y >= 0 && y <= canvasHeight;
 
                 if (pointCount != 0)
@@ -132,88 +132,79 @@ namespace GraphEq
 
         // Searches for a point P on the curve such that:
         //  - P is connected to start
-        //  - P.X is between start.X and xLim
-        //  - P.Y is out of view if possible (if near an asymptote)
-        Vector2 FindConnectedPoint(Vector2 start, float xLim, float canvasHeight)
+        //  - P.X is between start.X and limitX
+        //  - P.Y is off the canvas if possible (if an asymptote)
+        Vector2 FindConnectedPoint(Vector2 start, double limitX, float canvasHeight)
         {
-            for (int i = 0; i < 10 && start.X != xLim; i++)
+            int counter = 100;
+
+            double startX = start.X;
+            double startY = start.Y;
+
+            while (startX != limitX && startY > 0 && startY < canvasHeight)
             {
-                // Interpolate between start and xLim.
-                float x = (start.X + xLim) / 2;
-                float y = GetY(x);
+                // Limit the maximum number of iterations.
+                if (--counter == 0)
+                    break;
 
-                if (!float.IsRealNumber(y) || !IsJoined(start, new Vector2(x, y)))
-                {
-                    // (x, y) is not connected, so move closer to start.
-                    xLim = x;
-                }
-                else
-                {
-                    // (x, y) is connected, so make it the new start point.
-                    start = new Vector2(x, y);
+                // Select an intermediate point.
+                double x = (startX + limitX) / 2;
+                double y = GetY(x);
 
-                    // If we're off the canvas then this is our point.
-                    if (y <= 0 || y >= canvasHeight)
-                    {
-                        return start;
-                    }
+                // If (x,y) is off the curve, move closer to start.
+                if (!double.IsRealNumber(y))
+                {
+                    limitX = x;
+                    continue;
                 }
+
+                // If (x,y) is not connected, move closer to start.
+                if (!IsJoined(startX, startY, x, y))
+                {
+                    limitX = x;
+                    continue;
+                }
+
+                // Narrow the search with (x,y) as the new start point.
+                startX = x;
+                startY = y;
             }
-            return start;
+            return new Vector2((float)startX, (float)startY);
         }
 
-        float GetY(float x)
+        double GetY(double x)
         {
-            double value = x;
-
-            // Convert to logical units.
-            value -= m_origin.X;
-            value *= m_inverseScale;
+            // Convert X from pixels to logical units.
+            m_paramValues[0] = (x - m_origin.X) * m_inverseScale;
 
             // Invoke the expression.
-            m_paramValues[0] = value;
-            value = m_expr.Eval(m_paramValues);
+            double y = m_expr.Eval(m_paramValues);
 
-            // Convert back to DIPs and flip so positive Y is up.
-            value *= -m_scale;
-            value += m_origin.Y;
-
-            return (float)value;
+            // Convert back to pixels.
+            // Multiply by the negative scale to flip the Y axis.
+            return (y * -m_scale) + m_origin.Y;
         }
 
         bool IsJoined(Vector2 point0, Vector2 point1)
         {
-            return IsJoined(point0, point1, DistanceSquared(point0, point1));
+            return IsJoined(point0.X, point0.Y, point1.X, point1.Y);
         }
 
-        bool IsJoined(Vector2 point0, Vector2 point1, float d)
+        bool IsJoined(double x1, double y1, double x2, double y2)
         {
-            if (d <= 1)
-            {
+            double dy = double.Abs(y2 - y1);
+            if (dy <= 1.0)
                 return true;
-            }
 
-            float x = (point0.X + point1.X) * 0.5f;
-            float y = GetY(x);
-            if (!float.IsRealNumber(y))
-            {
+            if (dy > 1000.0)
                 return false;
-            }
-            var mid = new Vector2(x, y);
 
-            float d0 = DistanceSquared(point0, mid);
-            float d1 = DistanceSquared(mid, point1);
+            double x = (x1 + x2) / 2;
+            double y = GetY(x);
+            if (!double.IsRealNumber(y))
+                return false;
 
-            return d0 < d && d1 < d && 
-                IsJoined(point0, mid, d0) && 
-                IsJoined(point1, mid, d1);
-        }
-
-        static float DistanceSquared(Vector2 point0, Vector2 point1)
-        {
-            float dx = point0.X - point1.X;
-            float dy = point0.Y - point1.Y;
-            return dx * dx + dy * dy;
+            return IsJoined(x1, y1, x, y) && IsJoined(x, y, x2, y2);
         }
 
         public void Dispose()
