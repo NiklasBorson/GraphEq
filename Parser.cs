@@ -160,7 +160,7 @@ namespace GraphEq
                 {
                     m_lexer.Advance();
                     var condition = ParseExpr();
-                    expr = new DomainLimitExpr(expr, condition);
+                    expr = new TernaryExpr(condition, expr, ConstExpr.NaN);
                 }
                 else
                 {
@@ -176,11 +176,43 @@ namespace GraphEq
             return expr.Simplify();
         }
 
-        // expr -> unary (BinOp expr)*
         Expr ParseExpr()
         {
+            var expr = ParseBinaryExpr();
+
+            // Is it a ternary expression: expr ? first : second
+            if (m_lexer.TokenSymbol == SymbolId.QuestionMark)
+            {
+                // Advance past the '?'.
+                Advance();
+
+                // Parse the first subexpression.
+                var first = ParseBinaryExpr();
+
+                // Advacne past the ':'.
+                if (m_lexer.TokenSymbol != SymbolId.Colon)
+                {
+                    throw new ParseException(m_lexer, "Expected ':'.");
+                }
+                Advance();
+
+                // Parse the second subexpression.
+                var second = ParseExpr();
+
+                // Create the ternary expression.
+                expr = new TernaryExpr(expr, first, second);
+            }
+
+            return expr;
+        }
+
+        // expr -> unary (BinOp expr)*
+        Expr ParseBinaryExpr()
+        {
             if (!m_lexer.HaveToken)
+            {
                 throw new ParseException(m_lexer, "Expected expression.");
+            }
 
             var expr = ParseUnaryExpr();
 

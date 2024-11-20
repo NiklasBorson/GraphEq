@@ -2,6 +2,7 @@
 using System.Numerics;
 using Microsoft.Graphics.Canvas;
 using Microsoft.Graphics.Canvas.Geometry;
+using Microsoft.UI.Xaml.Input;
 using Windows.Foundation;
 
 namespace GraphEq
@@ -191,7 +192,8 @@ namespace GraphEq
             if (dy <= 0.25)
                 return true;
 
-            if (dy > 1000.0)
+            double dx = double.Abs(x2 - x1);
+            if (dx < 0.00001)
                 return false;
 
             double x = (x1 + x2) / 2;

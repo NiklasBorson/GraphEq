@@ -45,12 +45,17 @@ namespace GraphEq
             return (other as ConstExpr)?.m_value == m_value;
         }
 
+        public static readonly ConstExpr E = new ConstExpr(double.E);
+        public static readonly ConstExpr Pi = new ConstExpr(double.Pi);
+        public static readonly ConstExpr NaN = new ConstExpr(double.NaN);
+        public static readonly ConstExpr PositiveInfinity = new ConstExpr(double.PositiveInfinity);
+
         public static readonly Dictionary<string, ConstExpr> NamedConstants = new Dictionary<string, ConstExpr>
         {
-            { "e", new ConstExpr(double.E) },
-            { "pi", new ConstExpr(double.Pi) },
-            { "NaN", new ConstExpr(double.NaN) },
-            { "inf", new ConstExpr(double.PositiveInfinity) },
+            { "e", E },
+            { "pi", Pi },
+            { "NaN", NaN },
+            { "inf", PositiveInfinity },
         };
     }
 
@@ -386,53 +391,61 @@ namespace GraphEq
         };
     }
 
-    sealed class DomainLimitExpr : Expr
+    sealed class TernaryExpr : Expr
     {
-        Expr m_expr;
         Expr m_condition;
+        Expr m_first;
+        Expr m_second;
 
-        public DomainLimitExpr(Expr expr, Expr condition)
+        public TernaryExpr(Expr condition, Expr first, Expr second)
         {
-            m_expr = expr;
             m_condition = condition;
+            m_first = first;
+            m_second = second;
         }
 
         public override double Eval(double[] paramValues)
         {
             if (ToBool(m_condition.Eval(paramValues)))
             {
-                return m_expr.Eval(paramValues);
+                return m_first.Eval(paramValues);
             }
             else
             {
-                return double.NaN;
+                return m_second.Eval(paramValues);
             }
         }
 
-        public override bool IsConstant => false;
+        public override bool IsConstant =>
+            m_condition.IsConstant &&
+            m_first.IsConstant &&
+            m_second.IsConstant;
 
         public override Expr Simplify()
         {
-            var expr = m_expr.Simplify();
             var condition = m_condition.Simplify();
+            var first = m_first.Simplify();
+            var second = m_second.Simplify();
 
-            if (expr == m_expr && condition == m_condition)
+            if (condition == m_condition && first == m_first && second == m_second)
             {
                 return this;
             }
             else
             {
-                return new DomainLimitExpr(expr, condition);
+                return new TernaryExpr(condition, first, second);
             }
         }
 
         public override bool IsEquivalent(Expr other)
         {
-            var expr = other as DomainLimitExpr;
+            var expr = other as TernaryExpr;
             if (expr == null)
                 return false;
 
-            return m_expr.IsEquivalent(expr.m_expr) && m_condition.IsEquivalent(expr.m_condition);
+            return m_condition.IsEquivalent(expr.m_condition) &&
+                m_first.IsEquivalent(expr.m_first) &&
+                m_second.IsEquivalent(expr.m_second);
         }
     }
 }
