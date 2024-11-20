@@ -29,6 +29,7 @@ namespace GraphEq
         string[] m_varNames = new string[] { "x" };
         Expr m_expr = null;
         string m_errorMessage = null;
+        bool m_haveUserFunctionsChanged = false;
 
         // Device-dependent resources.
         AxisRenderer m_axisRenderer;
@@ -36,34 +37,6 @@ namespace GraphEq
         public MainWindow()
         {
             this.InitializeComponent();
-        }
-
-        string HelpText
-        {
-            get
-            {
-                var b = new StringBuilder();
-                b.Append(
-                    "Operators:\n" +
-                    " +  Plus\n" +
-                    " -  Minus\n" +
-                    " *  Multiply\n" +
-                    " /  Divide\n" +
-                    " ^  Power\n" +
-                    "\n" +
-                    "Intrinsic functions:"
-                    );
-                foreach (var funcDef in FunctionExpr.Functions.Values)
-                {
-                    b.AppendFormat("\n \x2022 {0}", funcDef.Signature);
-                }
-                b.Append("\n\nConstants:");
-                foreach (var s in ConstExpr.NamedConstants.Keys)
-                {
-                    b.AppendFormat("\n \x2022 {0}", s);
-                }
-                return b.ToString();
-            }
         }
 
         private void CanvasControl_ManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
@@ -139,6 +112,34 @@ namespace GraphEq
             }
         }
 
+        string HelpText
+        {
+            get
+            {
+                var b = new StringBuilder();
+                b.Append(
+                    "Operators:\n" +
+                    " +  Plus\n" +
+                    " -  Minus\n" +
+                    " *  Multiply\n" +
+                    " /  Divide\n" +
+                    " ^  Power\n" +
+                    "\n" +
+                    "Intrinsic functions:"
+                    );
+                foreach (var funcDef in FunctionExpr.Functions.Values)
+                {
+                    b.AppendFormat("\n \x2022 {0}", funcDef.Signature);
+                }
+                b.Append("\n\nConstants:");
+                foreach (var s in ConstExpr.NamedConstants.Keys)
+                {
+                    b.AppendFormat("\n \x2022 {0}", s);
+                }
+                return b.ToString();
+            }
+        }
+
         void SetExpression(Expr expr)
         {
             if (m_errorMessage == null)
@@ -199,30 +200,7 @@ namespace GraphEq
             }
         }
 
-        private void TextBox_TextChanged(object sender, Microsoft.UI.Xaml.Controls.TextChangedEventArgs e)
-        {
-            ReparseFormula();
-        }
-
-        private void CenterButton_Click(object sender, RoutedEventArgs e)
-        {
-            SetDefaultTransform();
-            Canvas.Invalidate();
-        }
-
-        private void OpenSidePanel_Click(object sender, RoutedEventArgs e)
-        {
-            SidePanel.Visibility = Visibility.Visible;
-            SidePanelOpenAnimation.Begin();
-        }
-
-        private void CloseSidePanel_Click(object sender, RoutedEventArgs e)
-        {
-            SidePanelCloseAnimation.Begin();
-        }
-
-
-        private void UserFunctionsTextBox_TextChanged(object sender, Microsoft.UI.Xaml.Controls.TextChangedEventArgs e)
+        void ReparseUserFunctions()
         {
             try
             {
@@ -241,6 +219,58 @@ namespace GraphEq
                     SetErrorMessage($"Error in function definitions line {m_parser.LineNumber}:\n{x.Message}");
                 }
             }
+        }
+
+        private void TextBox_TextChanged(object sender, Microsoft.UI.Xaml.Controls.TextChangedEventArgs e)
+        {
+            ReparseFormula();
+        }
+
+        private void UserFunctionsTextBox_TextChanged(object sender, Microsoft.UI.Xaml.Controls.TextChangedEventArgs e)
+        {
+            m_haveUserFunctionsChanged = true;
+            ReparseUserFunctions();
+        }
+
+        public string Formula
+        {
+            get => FormulaTextBox.Text;
+
+            set
+            {
+                FormulaTextBox.Text = value;
+                ReparseFormula();
+            }
+        }
+
+        public string UserFunctions
+        {
+            get => UserFunctionsTextBox.Text;
+
+            set
+            {
+                UserFunctionsTextBox.Text = value;
+                ReparseUserFunctions();
+            }
+        }
+
+        public bool HaveUserFunctionsChanged => m_haveUserFunctionsChanged;
+
+        private void CenterButton_Click(object sender, RoutedEventArgs e)
+        {
+            SetDefaultTransform();
+            Canvas.Invalidate();
+        }
+
+        private void OpenSidePanel_Click(object sender, RoutedEventArgs e)
+        {
+            SidePanel.Visibility = Visibility.Visible;
+            SidePanelOpenAnimation.Begin();
+        }
+
+        private void CloseSidePanel_Click(object sender, RoutedEventArgs e)
+        {
+            SidePanelCloseAnimation.Begin();
         }
     }
 }

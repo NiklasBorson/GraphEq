@@ -75,6 +75,7 @@
                         <ScrollViewer VerticalAlignment="Stretch">
                             <TextBox 
                                 x:Name="UserFunctionsTextBox"
+                                IsSpellCheckEnabled="False"
                                 AcceptsReturn="True" 
                                 TextChanged="UserFunctionsTextBox_TextChanged" 
                                 PlaceholderText="Type one function per line, e.g.,&#10;pow(x,y) = x^y"/>

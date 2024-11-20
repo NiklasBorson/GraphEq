@@ -43,7 +43,9 @@ namespace GraphEq
         public static readonly Dictionary<string, ConstExpr> NamedConstants = new Dictionary<string, ConstExpr>
         {
             { "e", new ConstExpr(double.E) },
-            { "pi", new ConstExpr(double.Pi) }
+            { "pi", new ConstExpr(double.Pi) },
+            { "NaN", new ConstExpr(double.NaN) },
+            { "inf", new ConstExpr(double.PositiveInfinity) },
         };
     }
 
@@ -287,7 +289,26 @@ namespace GraphEq
                 1,
                 (double[] args) => double.Truncate(args[0])
                 ) },
+            { "clamp", new FunctionDef(
+                "clamp(x,min,max)",
+                3,
+                (double[] args) => Clamp(args[0], args[1], args[2])
+                ) },
+            { "clip", new FunctionDef(
+                "clip(x,min,max)",
+                3,
+                (double[] args) => Clip(args[0], args[1], args[2])
+                ) },
         };
+
+        static double Clamp(double x, double min, double max)
+        {
+            return x < min ? min : x > max ? max : x;
+        }
+        static double Clip(double x, double min, double max)
+        {
+            return x < min ? double.NaN : x > max ? double.NaN : x;
+        }
 
         // Binary operators.
         public static readonly BinaryOp[] BinaryOperators = new BinaryOp[]
