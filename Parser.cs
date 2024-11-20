@@ -44,11 +44,18 @@ namespace GraphEq
                 m_functionName = null;
                 m_varNames.Clear();
 
-                if (string.IsNullOrWhiteSpace(line))
-                    continue;
-
-                m_lexer.InputString = line;
+                // Set the lexer input, trimming any comment.
+                var commentIndex = line.IndexOf(';');
+                m_lexer.InputString = commentIndex < 0 ?
+                    line :
+                    line.Substring(0, commentIndex);
                 CheckLexerError();
+
+                // Skip blank lilne.
+                if (m_lexer.TokenType == TokenType.None)
+                {
+                    continue;
+                }
 
                 // Parse the function name.
                 if (m_lexer.TokenType != TokenType.Identifier)

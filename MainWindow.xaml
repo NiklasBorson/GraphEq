@@ -109,7 +109,7 @@
                                 IsSpellCheckEnabled="False"
                                 AcceptsReturn="True" 
                                 TextChanged="UserFunctionsTextBox_TextChanged" 
-                                PlaceholderText="Type one function per line, e.g.,&#10;pow(x,y) = x^y"/>
+                                PlaceholderText="; Examples&#10;pow(x,y) = x^y&#10;circle_area(r) = pi * r^2"/>
                         </ScrollViewer>
                     </TabViewItem>
                 </TabView>
