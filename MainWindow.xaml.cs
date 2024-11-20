@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Input;
 using System.Numerics;
 using System.Collections.Generic;
 using Microsoft.UI.Xaml.Controls;
+using System.Text;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -28,6 +29,7 @@ namespace GraphEq
         string[] m_varNames = new string[] { "x" };
         Expr m_expr = null;
         string m_errorMessage = null;
+        bool m_haveUserFunctionsChanged = false;
 
         // Device-dependent resources.
         AxisRenderer m_axisRenderer;
@@ -36,7 +38,7 @@ namespace GraphEq
         {
             this.InitializeComponent();
         }
-        
+
         private void CanvasControl_ManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
         {
             if (m_expr != null)
@@ -110,6 +112,34 @@ namespace GraphEq
             }
         }
 
+        string HelpText
+        {
+            get
+            {
+                var b = new StringBuilder();
+                b.Append(
+                    "Operators:\n" +
+                    " +  Plus\n" +
+                    " -  Minus\n" +
+                    " *  Multiply\n" +
+                    " /  Divide\n" +
+                    " ^  Power\n" +
+                    "\n" +
+                    "Intrinsic functions:"
+                    );
+                foreach (var funcDef in FunctionExpr.Functions.Values)
+                {
+                    b.AppendFormat("\n \x2022 {0}", funcDef.Signature);
+                }
+                b.Append("\n\nConstants:");
+                foreach (var s in ConstExpr.NamedConstants.Keys)
+                {
+                    b.AppendFormat("\n \x2022 {0}", s);
+                }
+                return b.ToString();
+            }
+        }
+
         void SetExpression(Expr expr)
         {
             if (m_errorMessage == null)
@@ -170,27 +200,11 @@ namespace GraphEq
             }
         }
 
-        private void TextBox_TextChanged(object sender, Microsoft.UI.Xaml.Controls.TextChangedEventArgs e)
-        {
-            ReparseFormula();
-        }
-
-        private void FunctionsButton_Click(object sender, RoutedEventArgs e)
-        {
-            FunctionsPane.Visibility = Visibility.Visible;
-            FunctionsTextBox.Focus(FocusState.Keyboard);
-        }
-
-        private void CloseFunctionsButton_Click(object sender, RoutedEventArgs e)
-        {
-            FunctionsPane.Visibility = Visibility.Collapsed;
-        }
-
-        private void FunctionsTextBox_TextChanged(object sender, Microsoft.UI.Xaml.Controls.TextChangedEventArgs e)
+        void ReparseUserFunctions()
         {
             try
             {
-                m_userFunctions = m_parser.ParseFunctionDefs(FunctionsTextBox.Text);
+                m_userFunctions = m_parser.ParseFunctionDefs(UserFunctionsTextBox.Text);
                 ReparseFormula();
             }
             catch (ParseException x)
@@ -205,6 +219,58 @@ namespace GraphEq
                     SetErrorMessage($"Error in function definitions line {m_parser.LineNumber}:\n{x.Message}");
                 }
             }
+        }
+
+        private void TextBox_TextChanged(object sender, Microsoft.UI.Xaml.Controls.TextChangedEventArgs e)
+        {
+            ReparseFormula();
+        }
+
+        private void UserFunctionsTextBox_TextChanged(object sender, Microsoft.UI.Xaml.Controls.TextChangedEventArgs e)
+        {
+            m_haveUserFunctionsChanged = true;
+            ReparseUserFunctions();
+        }
+
+        public string Formula
+        {
+            get => FormulaTextBox.Text;
+
+            set
+            {
+                FormulaTextBox.Text = value;
+                ReparseFormula();
+            }
+        }
+
+        public string UserFunctions
+        {
+            get => UserFunctionsTextBox.Text;
+
+            set
+            {
+                UserFunctionsTextBox.Text = value;
+                ReparseUserFunctions();
+            }
+        }
+
+        public bool HaveUserFunctionsChanged => m_haveUserFunctionsChanged;
+
+        private void CenterButton_Click(object sender, RoutedEventArgs e)
+        {
+            SetDefaultTransform();
+            Canvas.Invalidate();
+        }
+
+        private void OpenSidePanel_Click(object sender, RoutedEventArgs e)
+        {
+            SidePanel.Visibility = Visibility.Visible;
+            SidePanelOpenAnimation.Begin();
+        }
+
+        private void CloseSidePanel_Click(object sender, RoutedEventArgs e)
+        {
+            SidePanelCloseAnimation.Begin();
         }
     }
 }

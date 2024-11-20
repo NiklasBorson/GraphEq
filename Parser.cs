@@ -268,18 +268,11 @@ namespace GraphEq
 
                     // Is it a named constant?
                     ConstExpr constExpr;
-                    if (ConstExpr.NameConstants.TryGetValue(name, out constExpr))
+                    if (ConstExpr.NamedConstants.TryGetValue(name, out constExpr))
                     {
                         return constExpr;
                     }
-
-                    var b = new StringBuilder();
-                    b.AppendFormat("Variable or constant {0} not defined. Named constants are:", name);
-                    foreach (var s in ConstExpr.NameConstants.Keys)
-                    {
-                        b.AppendFormat("\n - {0}", s);
-                    }
-                    throw new ParseException(m_lexer, b.ToString());
+                    throw new ParseException(m_lexer, $"Undefined variable or constant: {name}.");
                 }
             }
             else if (m_lexer.TokenSymbol == SymbolId.LeftParen)
@@ -319,15 +312,7 @@ namespace GraphEq
 
                 return new FunctionExpr(func.Func, Precedence.Atomic, args);
             }
-
-            // Build the error message string.
-            var b = new StringBuilder();
-            b.AppendFormat("Unknown function: {0}.\nIntrinsic functions are:", name);
-            foreach (var funcDef in FunctionExpr.Functions.Values)
-            {
-                b.AppendFormat("\n - {0}", funcDef.Signature);
-            }
-            throw new ParseException(m_lexer, b.ToString());
+            throw new ParseException(m_lexer, $"Unknown function: {name}.");
         }
     }
 }

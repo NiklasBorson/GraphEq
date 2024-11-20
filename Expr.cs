@@ -40,10 +40,12 @@ namespace GraphEq
             return (other as ConstExpr)?.m_value == m_value;
         }
 
-        public static readonly Dictionary<string, ConstExpr> NameConstants = new Dictionary<string, ConstExpr>
+        public static readonly Dictionary<string, ConstExpr> NamedConstants = new Dictionary<string, ConstExpr>
         {
             { "e", new ConstExpr(double.E) },
-            { "pi", new ConstExpr(double.Pi) }
+            { "pi", new ConstExpr(double.Pi) },
+            { "NaN", new ConstExpr(double.NaN) },
+            { "inf", new ConstExpr(double.PositiveInfinity) },
         };
     }
 
@@ -231,8 +233,82 @@ namespace GraphEq
                 "tan(n)",
                 1,
                 (double[] args) => double.Tan(args[0])
-                ) }
+                ) },
+            { "asin", new FunctionDef(
+                "asin(n)",
+                1,
+                (double[] args) => double.Asin(args[0])
+                ) },
+            { "acos", new FunctionDef(
+                "acos(n)",
+                1,
+                (double[] args) => double.Acos(args[0])
+                ) },
+            { "atan", new FunctionDef(
+                "atan(n)",
+                1,
+                (double[] args) => double.Atan(args[0])
+                ) },
+            { "atan2", new FunctionDef(
+                "atan2(x,y)",
+                2,
+                (double[] args) => double.Atan2(args[0], args[1])
+                ) },
+            { "abs", new FunctionDef(
+                "abs(n)",
+                1,
+                (double[] args) => double.Abs(args[0])
+                ) },
+            { "max", new FunctionDef(
+                "max(a,b)",
+                2,
+                (double[] args) => double.Max(args[0], args[1])
+                ) },
+            { "min", new FunctionDef(
+                "min(a,b)",
+                2,
+                (double[] args) => double.Min(args[0], args[1])
+                ) },
+            { "round", new FunctionDef(
+                "round(n)",
+                1,
+                (double[] args) => double.Round(args[0])
+                ) },
+            { "floor", new FunctionDef(
+                "floor(n)",
+                1,
+                (double[] args) => double.Floor(args[0])
+                ) },
+            { "ceil", new FunctionDef(
+                "ceil(n)",
+                1,
+                (double[] args) => double.Ceiling(args[0])
+                ) },
+            { "trunc", new FunctionDef(
+                "trunc(n)",
+                1,
+                (double[] args) => double.Truncate(args[0])
+                ) },
+            { "clamp", new FunctionDef(
+                "clamp(x,min,max)",
+                3,
+                (double[] args) => Clamp(args[0], args[1], args[2])
+                ) },
+            { "clip", new FunctionDef(
+                "clip(x,min,max)",
+                3,
+                (double[] args) => Clip(args[0], args[1], args[2])
+                ) },
         };
+
+        static double Clamp(double x, double min, double max)
+        {
+            return x < min ? min : x > max ? max : x;
+        }
+        static double Clip(double x, double min, double max)
+        {
+            return x < min ? double.NaN : x > max ? double.NaN : x;
+        }
 
         // Binary operators.
         public static readonly BinaryOp[] BinaryOperators = new BinaryOp[]

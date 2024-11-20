@@ -2,6 +2,7 @@
 using System.Numerics;
 using Microsoft.Graphics.Canvas;
 using Microsoft.Graphics.Canvas.Geometry;
+using Windows.Foundation;
 
 namespace GraphEq
 {
@@ -14,8 +15,8 @@ namespace GraphEq
         double[] m_paramValues = new double[1];
         double m_scale;
         double m_inverseScale;
-        Vector2 m_origin;
-        Vector2[] m_figurePoints; // buffer for points in the current figure
+        Point m_origin;
+        Point[] m_figurePoints; // buffer for points in the current figure
 
         public static void Draw(
             CanvasDrawingSession drawingSession,
@@ -42,36 +43,37 @@ namespace GraphEq
             m_expr = expr;
             m_scale = scale;
             m_inverseScale = 1.0 / m_scale;
-            m_origin = origin;
+            m_origin = origin.ToPoint();
         }
 
-        public CanvasGeometry CreateGeometry(float canvasWidth, float canvasHeight)
+        public CanvasGeometry CreateGeometry(double canvasWidth, double canvasHeight)
         {
             // Ensure we have a buffer big enough for the maximum number of points.
-            int maxPoints = (int)float.Ceiling(canvasWidth) + 1;
+            int maxPoints = (int)double.Ceiling(canvasWidth) + 1;
             if (m_figurePoints == null || m_figurePoints.Length < maxPoints)
             {
-                m_figurePoints = new Vector2[maxPoints];
+                m_figurePoints = new Point[maxPoints];
             }
             int pointCount = 0;
 
             // Iterate over integral X coordinates from 0 through the width.
             for (int i = 0; i < maxPoints; i++)
             {
-                float x = (float)i;
-                float y = GetY(x);
+                double x = i;
+                double y = GetY(x);
                 bool isVisible = y >= 0 && y <= canvasHeight;
 
                 if (pointCount != 0)
                 {
                     // End the current figure if the point is off screen or the curve is not continuous.
-                    bool isJoined = float.IsRealNumber(y) && IsJoined(m_figurePoints[pointCount - 1], new Vector2(x, y));
+                    var last = m_figurePoints[pointCount - 1];
+                    bool isJoined = double.IsRealNumber(y) && IsJoined(last.X, last.Y, x, y);
                     if (!isVisible || !isJoined)
                     {
                         if (isJoined)
                         {
                             // Include this point, so the curve doesn't stop before the edge of the window.
-                            m_figurePoints[pointCount++] = new Vector2(x, y);
+                            m_figurePoints[pointCount++] = new Point(x, y);
                         }
 
                         // Add the current figure and begin a new one.
@@ -83,7 +85,7 @@ namespace GraphEq
                 // Add the point to the current figure if it's visible.
                 if (isVisible)
                 {
-                    m_figurePoints[pointCount++] = new Vector2(x, y);
+                    m_figurePoints[pointCount++] = new Point(x, y);
                 }
             }
 
@@ -95,7 +97,7 @@ namespace GraphEq
             return CanvasGeometry.CreatePath(m_pathBuilder);
         }
 
-        void AddFigure(Span<Vector2> points, float canvasWidth, float canvasHeight)
+        void AddFigure(Span<Point> points, double canvasWidth, double canvasHeight)
         {
             // Begin the figure and add the first point.
             var first = points[0];
@@ -103,19 +105,19 @@ namespace GraphEq
             {
                 // The first point is visible. Interpolate to find a connected point to its
                 // left so we can draw asymptotes correctly.
-                var pt = FindConnectedPoint(first, first.X - 1, canvasHeight);
-                m_pathBuilder.BeginFigure(pt);
-                m_pathBuilder.AddLine(first);
+                var pt = FindFigureEndPoint(first, first.X - 1, canvasHeight);
+                m_pathBuilder.BeginFigure(pt.ToVector2());
+                m_pathBuilder.AddLine(first.ToVector2());
             }
             else
             {
-                m_pathBuilder.BeginFigure(first);
+                m_pathBuilder.BeginFigure(first.ToVector2());
             }
 
             // Add the remaining points.
             for (int i = 1; i < points.Length; i++)
             {
-                m_pathBuilder.AddLine(points[i]);
+                m_pathBuilder.AddLine(points[i].ToVector2());
             }
 
             // If the last point is visible, interpolate to find a connected point to its
@@ -123,97 +125,82 @@ namespace GraphEq
             var last = points[points.Length - 1];
             if (last.X < canvasWidth && last.Y > 0 && last.Y < canvasHeight)
             {
-                var pt = FindConnectedPoint(last, last.X + 1, canvasHeight);
-                m_pathBuilder.AddLine(pt);
+                var pt = FindFigureEndPoint(last, last.X + 1, canvasHeight);
+                m_pathBuilder.AddLine(pt.ToVector2());
             }
 
             m_pathBuilder.EndFigure(CanvasFigureLoop.Open);
         }
 
-        // Searches for a point P on the curve such that:
-        //  - P is connected to start
-        //  - P.X is between start.X and xLim
-        //  - P.Y is out of view if possible (if near an asymptote)
-        Vector2 FindConnectedPoint(Vector2 start, float xLim, float canvasHeight)
+        // Finds a point P, where:
+        //  - P is on the curve and connected to figurePoint.
+        //  - P.X is in the range figurePoint.X..limitX.
+        //  - P.Y is off canvas if there is an asymptote in the range.
+        Point FindFigureEndPoint(Point figurePoint, double limitX, double canvasHeight)
         {
-            for (int i = 0; i < 10 && start.X != xLim; i++)
-            {
-                // Interpolate between start and xLim.
-                float x = (start.X + xLim) / 2;
-                float y = GetY(x);
+            const int maxIterations = 16;
 
-                if (!float.IsRealNumber(y) || !IsJoined(start, new Vector2(x, y)))
+            // Use binary search to find a point between figurePoint.X and limitX.
+            // Loop invariants:
+            //  - pt is on the curve and connected to figurePoint.
+            //  - The point we're looking for is in the range pt.X..limitX.
+            var pt = figurePoint;
+            for (int i = 0; i < maxIterations && pt.X != limitX; i++)
+            {
+                // If pt is off canvas then we've found our point.
+                if (pt.Y <= 0 || pt.Y >= canvasHeight)
                 {
-                    // (x, y) is not connected, so move closer to start.
-                    xLim = x;
+                    return pt;
+                }
+
+                // Select an intermediate point at x.
+                double x = (pt.X + limitX) / 2;
+                double y = GetY(x);
+
+                // Is x on the curve and connected to pt?
+                if (double.IsRealNumber(y) && IsJoined(pt.X, pt.Y, x, y))
+                {
+                    // Connected: narrow the search to x..limitX.
+                    pt = new Point(x, y);
                 }
                 else
                 {
-                    // (x, y) is connected, so make it the new start point.
-                    start = new Vector2(x, y);
-
-                    // If we're off the canvas then this is our point.
-                    if (y <= 0 || y >= canvasHeight)
-                    {
-                        return start;
-                    }
+                    // Not connected: narrow the search to pt..x.
+                    limitX = x;
                 }
             }
-            return start;
+
+            return pt;
         }
 
-        float GetY(float x)
+        double GetY(double x)
         {
-            double value = x;
-
-            // Convert to logical units.
-            value -= m_origin.X;
-            value *= m_inverseScale;
+            // Convert X from pixels to logical units.
+            m_paramValues[0] = (x - m_origin.X) * m_inverseScale;
 
             // Invoke the expression.
-            m_paramValues[0] = value;
-            value = m_expr.Eval(m_paramValues);
+            double y = m_expr.Eval(m_paramValues);
 
-            // Convert back to DIPs and flip so positive Y is up.
-            value *= -m_scale;
-            value += m_origin.Y;
-
-            return (float)value;
+            // Convert back to pixels.
+            // Multiply by the negative scale to flip the Y axis.
+            return (y * -m_scale) + m_origin.Y;
         }
 
-        bool IsJoined(Vector2 point0, Vector2 point1)
+        bool IsJoined(double x1, double y1, double x2, double y2)
         {
-            return IsJoined(point0, point1, DistanceSquared(point0, point1));
-        }
-
-        bool IsJoined(Vector2 point0, Vector2 point1, float d)
-        {
-            if (d <= 1)
-            {
+            double dy = double.Abs(y2 - y1);
+            if (dy <= 0.25)
                 return true;
-            }
 
-            float x = (point0.X + point1.X) * 0.5f;
-            float y = GetY(x);
-            if (!float.IsRealNumber(y))
-            {
+            if (dy > 1000.0)
                 return false;
-            }
-            var mid = new Vector2(x, y);
 
-            float d0 = DistanceSquared(point0, mid);
-            float d1 = DistanceSquared(mid, point1);
+            double x = (x1 + x2) / 2;
+            double y = GetY(x);
+            if (!double.IsRealNumber(y))
+                return false;
 
-            return d0 < d && d1 < d && 
-                IsJoined(point0, mid, d0) && 
-                IsJoined(point1, mid, d1);
-        }
-
-        static float DistanceSquared(Vector2 point0, Vector2 point1)
-        {
-            float dx = point0.X - point1.X;
-            float dy = point0.Y - point1.Y;
-            return dx * dx + dy * dy;
+            return IsJoined(x1, y1, x, y) && IsJoined(x, y, x2, y2);
         }
 
         public void Dispose()

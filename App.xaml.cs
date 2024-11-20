@@ -15,6 +15,7 @@ using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
+using Windows.Storage;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -43,8 +44,54 @@ namespace GraphEq
         {
             m_window = new MainWindow();
             m_window.Activate();
+
+            ReadAppData();
+
+            m_window.Closed += (object sender, WindowEventArgs args) => SaveAppData();
         }
 
-        private Window m_window;
+        const string UserFunctionsFileName = "MyFunctions.txt";
+        const string FormulaSettingsKey = "Formula";
+
+        async void ReadAppData()
+        {
+            // Try opening the user functions file.
+            var folder = Windows.Storage.ApplicationData.Current.LocalFolder;
+            var file = (await folder.TryGetItemAsync(UserFunctionsFileName)) as StorageFile;
+            if (file != null)
+            {
+                var text = await FileIO.ReadTextAsync(file);
+                m_window.UserFunctions = text;
+            }
+
+            // Try getting the formula setting.
+            var settings = Windows.Storage.ApplicationData.Current.LocalSettings;
+            object formula;
+            if (settings.Values.TryGetValue(FormulaSettingsKey, out formula))
+            {
+                m_window.Formula = formula.ToString();
+            }
+        }
+
+        void SaveAppData()
+        {
+            // Save the formula.
+            var settings = Windows.Storage.ApplicationData.Current.LocalSettings;
+            settings.Values[FormulaSettingsKey] = m_window.Formula;
+
+            // Save the user functions only if they've changed.
+            if (m_window.HaveUserFunctionsChanged)
+            {
+                var folder = Windows.Storage.ApplicationData.Current.LocalFolder;
+                var filePath = System.IO.Path.Combine(folder.Path, UserFunctionsFileName);
+
+                using (var writer = new StreamWriter(filePath))
+                {
+                    writer.Write(m_window.UserFunctions);
+                }
+            }
+        }
+
+        private MainWindow m_window;
     }
 }

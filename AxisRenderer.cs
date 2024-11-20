@@ -9,6 +9,7 @@ namespace GraphEq
 {
     internal class AxisRenderer : IDisposable
     {
+        static readonly Windows.UI.Color GridColor = Windows.UI.Color.FromArgb(255, 255, 255, 255);
         static readonly Windows.UI.Color AxisColor = Windows.UI.Color.FromArgb(255, 20, 20, 20);
 
         ICanvasResourceCreator m_resourceCreator;
@@ -38,61 +39,116 @@ namespace GraphEq
             float height = (float)canvas.ActualHeight;
             float width = (float)canvas.ActualWidth;
 
-            // Draw the Y axis.
-            g.Transform = Matrix3x2.CreateTranslation(origin.X, origin.Y);
-            DrawAxis(g, scale, unit, -origin.Y, height - origin.Y);
+            for (int layer = 0; layer < 3; layer++)
+            {
+                // Draw the Y axis.
+                g.Transform = Matrix3x2.CreateTranslation(origin.X, origin.Y);
+                DrawAxis(
+                    g, 
+                    scale, 
+                    unit, 
+                    /*minX*/ -origin.X,
+                    /*minY*/ -origin.Y, 
+                    /*maxX*/ width - origin.X,
+                    /*maxY*/ height - origin.Y, 
+                    layer
+                    );
 
-            // Draw the X axis by rotating 90 degrees to the right.
-            g.Transform = Matrix3x2.CreateRotation(float.Pi / 2) *
-                Matrix3x2.CreateTranslation(origin.X, origin.Y);
-            DrawAxis(g, scale, unit, origin.X - width, origin.X);
+                // Draw the X axis by rotating 90 degrees to the right.
+                g.Transform = Matrix3x2.CreateRotation(float.Pi / 2) *
+                    Matrix3x2.CreateTranslation(origin.X, origin.Y);
+                DrawAxis(
+                    g, 
+                    scale, 
+                    unit,
+                    /*minX*/ -origin.Y,
+                    /*minY*/ origin.X - width,
+                    /*maxX*/ height + origin.Y,
+                    /*maxY*/ origin.X, 
+                    layer
+                    );
+            }
 
             g.Transform = Matrix3x2.Identity;
         }
 
-        void DrawAxis(CanvasDrawingSession g, float scale, float unit, float minY, float maxY)
+        void DrawAxis(
+            CanvasDrawingSession g, 
+            float scale, 
+            float unit, 
+            float minX,
+            float minY,
+            float maxX,
+            float maxY, 
+            int layer
+            )
         {
             const float tickSize = 5;
             const float labelOffset = 10;
-
-            // Draw the axis itself.
-            g.FillRectangle(
-                -0.5f,
-                minY,
-                1.0f,
-                maxY - minY,
-                AxisColor
-                );
 
             float spacing = unit * scale;
             float iMin = float.Floor(minY / spacing);
             float iMax = float.Ceiling(maxY / spacing);
 
-            // Draw the graduation tick marks.
-            for (float i = iMin; i <= iMax; i += 1)
+            switch (layer)
             {
-                if (i != 0)
-                {
-                    float y = i * spacing;
+                case 0:
+                    // Draw the grid lines.
+                    for (float i = iMin; i <= iMax; i += 1)
+                    {
+                        if (i != 0)
+                        {
+                            float y = i * spacing;
+                            g.FillRectangle(
+                                minX,
+                                y - 0.5f,
+                                maxX - minX,
+                                1.0f,
+                                GridColor
+                                );
+                        }
+                    }
+                    break;
+
+                case 1:
+                    // Draw the axis itself.
                     g.FillRectangle(
-                        -tickSize,
-                        y - 0.5f,
-                        tickSize * 2,
+                        -0.5f,
+                        minY,
                         1.0f,
+                        maxY - minY,
                         AxisColor
                         );
-                }
-            }
 
-            // Draw the graduation labels.
-            for (float i = iMin; i <= iMax; i += 1)
-            {
-                if (i != 0)
-                {
-                    float y = i * spacing;
-                    var label = GetLabel(i * -unit);
-                    g.DrawTextLayout(label, labelOffset, y, AxisColor);
-                }
+                    // Draw the graduation tick marks.
+                    for (float i = iMin; i <= iMax; i += 1)
+                    {
+                        if (i != 0)
+                        {
+                            float y = i * spacing;
+                            g.FillRectangle(
+                                -tickSize,
+                                y - 0.5f,
+                                tickSize * 2,
+                                1.0f,
+                                AxisColor
+                                );
+                        }
+                    }
+                    break;
+
+                case 2:
+                    // Draw the graduation labels.
+                    for (float i = iMin; i <= iMax; i += 1)
+                    {
+                        if (i != 0)
+                        {
+                            float y = i * spacing;
+                            var label = GetLabel(i * -unit);
+                            g.DrawTextLayout(label, labelOffset, y, AxisColor);
+                        }
+                    }
+                    break;
             }
         }
 

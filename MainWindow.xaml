@@ -15,7 +15,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        
+
         <canvas:CanvasControl 
             x:Name="Canvas" 
             Grid.RowSpan="2" 
@@ -28,23 +28,61 @@
         <StackPanel Orientation="Horizontal" Margin="10">
             <TextBlock Text="f(x) =" VerticalAlignment="Center"/>
             <TextBox x:Name="FormulaTextBox" Width="300" PlaceholderText="Type formula" TextChanged="TextBox_TextChanged"/>
+            <Button Click="CenterButton_Click" ToolTipService.ToolTip="Center grid.">
+                <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE81D;"/>
+            </Button>
         </StackPanel>
 
-        <Button HorizontalAlignment="Right" VerticalAlignment="Top" Grid.RowSpan="2" Content="User Functions" Click="FunctionsButton_Click"/>
+        <Button Margin="5" HorizontalAlignment="Right" VerticalAlignment="Top" ToolTipService.ToolTip="Open side panel." Click="OpenSidePanel_Click">
+            <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE8A0;"/>
+        </Button>
 
-        <Grid x:Name="FunctionsPane" Width="300" Grid.RowSpan="2" HorizontalAlignment="Right" Background="DarkGray" Padding="2" Visibility="Collapsed">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
-            <Button Content="&#xE711;" FontFamily="Segoe MDL2 Assets" Click="CloseFunctionsButton_Click"/>
-            <TextBox 
-                x:Name="FunctionsTextBox" 
-                Grid.Row="1" 
-                AcceptsReturn="True" 
-                TextChanged="FunctionsTextBox_TextChanged" 
-                PlaceholderText="Type one function per line, e.g.,&#10;r(x) = 1/x&#10;pow(x,y) = x^y"/>
-        </Grid>
-
+        <Border x:Name="SidePanel"
+                Width="300" Grid.RowSpan="2" HorizontalAlignment="Right"
+                Background="DarkGray" BorderBrush="DarkSlateGray" BorderThickness="2" Padding="3">
+            <Border.Resources>
+                <Storyboard x:Name="SidePanelOpenAnimation">
+                    <DoubleAnimation 
+                        Storyboard.TargetName="SidePanelTranslation"
+                        Storyboard.TargetProperty="X"
+                        From="300" To="0" Duration="0:0:0.1"/>
+                </Storyboard>
+                <Storyboard x:Name="SidePanelCloseAnimation">
+                    <DoubleAnimation 
+                        Storyboard.TargetName="SidePanelTranslation"
+                        Storyboard.TargetProperty="X"
+                        From="0" To="300" Duration="0:0:0.1"/>
+                </Storyboard>
+            </Border.Resources>
+            <Border.RenderTransform>
+                <TranslateTransform x:Name="SidePanelTranslation" X="300"/>
+            </Border.RenderTransform>
+            <Grid >
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Button HorizontalAlignment="Right" ToolTipService.ToolTip="Close side panel." Click="CloseSidePanel_Click">
+                    <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE89F;"/>
+                </Button>
+                <TabView Grid.Row="1" VerticalAlignment="Stretch">
+                    <TabViewItem Header="Help" IsClosable="False">
+                        <ScrollViewer>
+                            <TextBox IsReadOnly="True" AcceptsReturn="True" FontFamily="Consolas" Text="{x:Bind HelpText,Mode=OneTime}"/>
+                        </ScrollViewer>
+                    </TabViewItem>
+                    <TabViewItem Header="My Functions" IsClosable="False">
+                        <ScrollViewer VerticalAlignment="Stretch">
+                            <TextBox 
+                                x:Name="UserFunctionsTextBox"
+                                IsSpellCheckEnabled="False"
+                                AcceptsReturn="True" 
+                                TextChanged="UserFunctionsTextBox_TextChanged" 
+                                PlaceholderText="Type one function per line, e.g.,&#10;pow(x,y) = x^y"/>
+                        </ScrollViewer>
+                    </TabViewItem>
+                </TabView>
+            </Grid>
+        </Border>
     </Grid>
 </Window>
