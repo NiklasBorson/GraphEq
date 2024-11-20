@@ -38,8 +38,25 @@
         </Button>
 
         <Border x:Name="SidePanel"
-                Width="300" Grid.RowSpan="2" HorizontalAlignment="Right" Visibility="Collapsed"
+                Width="300" Grid.RowSpan="2" HorizontalAlignment="Right"
                 Background="DarkGray" BorderBrush="DarkSlateGray" BorderThickness="2" Padding="3">
+            <Border.Resources>
+                <Storyboard x:Name="SidePanelOpenAnimation">
+                    <DoubleAnimation 
+                        Storyboard.TargetName="SidePanelTranslation"
+                        Storyboard.TargetProperty="X"
+                        From="300" To="0" Duration="0:0:0.1"/>
+                </Storyboard>
+                <Storyboard x:Name="SidePanelCloseAnimation">
+                    <DoubleAnimation 
+                        Storyboard.TargetName="SidePanelTranslation"
+                        Storyboard.TargetProperty="X"
+                        From="0" To="300" Duration="0:0:0.1"/>
+                </Storyboard>
+            </Border.Resources>
+            <Border.RenderTransform>
+                <TranslateTransform x:Name="SidePanelTranslation" X="300"/>
+            </Border.RenderTransform>
             <Grid >
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>

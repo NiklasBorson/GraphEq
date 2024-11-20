@@ -213,11 +213,12 @@ namespace GraphEq
         private void OpenSidePanel_Click(object sender, RoutedEventArgs e)
         {
             SidePanel.Visibility = Visibility.Visible;
+            SidePanelOpenAnimation.Begin();
         }
 
         private void CloseSidePanel_Click(object sender, RoutedEventArgs e)
         {
-            SidePanel.Visibility = Visibility.Collapsed;
+            SidePanelCloseAnimation.Begin();
         }
 
 
