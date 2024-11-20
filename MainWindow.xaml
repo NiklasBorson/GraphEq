@@ -8,38 +8,69 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
-    Title="Formula Grapher">
+    Title="Graph Equations">
 
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- The canvas spans all rows and columns, filling the entire background -->
         <canvas:CanvasControl 
             x:Name="Canvas" 
-            Grid.RowSpan="2" 
+            Grid.RowSpan="3"
+            Grid.ColumnSpan="4"
             CreateResources="CanvasControl_CreateResources" 
             Draw="CanvasControl_Draw" 
             ManipulationMode="Scale,TranslateX,TranslateY" 
             ManipulationDelta="CanvasControl_ManipulationDelta"
             PointerWheelChanged="CanvasControl_PointerWheelChanged"/>
 
-        <StackPanel Orientation="Horizontal" Margin="10">
-            <TextBlock Text="f(x) =" VerticalAlignment="Center"/>
-            <TextBox x:Name="FormulaTextBox" Width="300" PlaceholderText="Type formula" TextChanged="TextBox_TextChanged"/>
-            <Button Click="CenterButton_Click" ToolTipService.ToolTip="Center grid.">
-                <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE81D;"/>
-            </Button>
-        </StackPanel>
+        <!-- Nested grid for the formulas is in row 0, column 0 -->
+        <Grid Margin="5">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="5"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-        <Button Margin="5" HorizontalAlignment="Right" VerticalAlignment="Top" ToolTipService.ToolTip="Open side panel." Click="OpenSidePanel_Click">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="300"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Formula label and text box are in row 0, columns 0..1 -->
+            <TextBlock Text="f(x) =" Foreground="DarkRed" FontWeight="Bold" FontStyle="Italic" VerticalAlignment="Center"/>
+            <TextBox x:Name="FormulaTextBox" Grid.Column="1" PlaceholderText="Type formula" IsSpellCheckEnabled="False" TextChanged="Formula_TextChanged"/>
+
+            <!-- Second formula label and text box are in row 2, columns 0..1 -->
+            <TextBlock Text="f(x) =" Grid.Row="2" Foreground="Blue" FontWeight="Bold" FontStyle="Italic" VerticalAlignment="Center"/>
+            <TextBox x:Name="Formula2TextBox" Grid.Row="2" Grid.Column="1" PlaceholderText="Type formula" IsSpellCheckEnabled="False" TextChanged="Formula2_TextChanged"/>
+        </Grid>
+
+        <!-- Center grid button is in row 0, column 1 -->
+        <Button Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5" Click="CenterButton_Click" ToolTipService.ToolTip="Center grid.">
+            <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE81D;"/>
+        </Button>
+
+        <!-- Open panel button in in row 0, column 3 -->
+        <Button Grid.Column="4" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" Click="OpenSidePanel_Click" ToolTipService.ToolTip="Open side panel.">
             <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE8A0;"/>
         </Button>
 
+        <!-- The side panel spans all rows and columns but is right-aligned with a fixed width -->
         <Border x:Name="SidePanel"
-                Width="300" Grid.RowSpan="2" HorizontalAlignment="Right"
-                Background="DarkGray" BorderBrush="DarkSlateGray" BorderThickness="2" Padding="3">
+                Width="300" Grid.RowSpan="3" Grid.ColumnSpan="4" HorizontalAlignment="Right"
+                Background="{ThemeResource ContentDialogBackgroundThemeBrush}" BorderBrush="DarkSlateGray" BorderThickness="2" Padding="3">
             <Border.Resources>
                 <Storyboard x:Name="SidePanelOpenAnimation">
                     <DoubleAnimation 

@@ -52,6 +52,10 @@ namespace GraphEq
 
         const string UserFunctionsFileName = "MyFunctions.txt";
         const string FormulaSettingsKey = "Formula";
+        const string Formula2SettingsKey = "Formula2";
+        const string ScaleSettingsKey = "Scale";
+        const string OriginXSettingsKey = "OriginX";
+        const string OriginYSettingsKey = "OriginY";
 
         async void ReadAppData()
         {
@@ -64,20 +68,44 @@ namespace GraphEq
                 m_window.UserFunctions = text;
             }
 
-            // Try getting the formula setting.
-            var settings = Windows.Storage.ApplicationData.Current.LocalSettings;
+            // Try getting the formula settings.
+            var settings = Windows.Storage.ApplicationData.Current.LocalSettings.Values;
             object formula;
-            if (settings.Values.TryGetValue(FormulaSettingsKey, out formula))
+            if (settings.TryGetValue(FormulaSettingsKey, out formula))
             {
-                m_window.Formula = formula.ToString();
+                m_window.FormulaText = formula.ToString();
+            }
+            if (settings.TryGetValue(Formula2SettingsKey, out formula))
+            {
+                m_window.Formula2Text = formula.ToString();
+            }
+
+            // Try getting the scale and origin.
+            object scale, originX, originY;
+            if (settings.TryGetValue(ScaleSettingsKey, out scale) &&
+                settings.TryGetValue(OriginXSettingsKey, out originX) &&
+                settings.TryGetValue(OriginYSettingsKey, out originY) &&
+                scale is float && originX is float && originY is float)
+            {
+                m_window.Scale = (float)scale;
+                m_window.RelativeOrigin = new System.Numerics.Vector2((float)originX, (float)originY);
             }
         }
 
         void SaveAppData()
         {
-            // Save the formula.
-            var settings = Windows.Storage.ApplicationData.Current.LocalSettings;
-            settings.Values[FormulaSettingsKey] = m_window.Formula;
+            // Save the formulas.
+            var settings = Windows.Storage.ApplicationData.Current.LocalSettings.Values;
+            settings[FormulaSettingsKey] = m_window.FormulaText;
+            settings[Formula2SettingsKey] = m_window.Formula2Text;
+
+            // Save the scale.
+            settings[ScaleSettingsKey] = m_window.Scale;
+
+            // Save the origin.
+            var origin = m_window.RelativeOrigin;
+            settings[OriginXSettingsKey] = origin.X;
+            settings[OriginYSettingsKey] = origin.Y;
 
             // Save the user functions only if they've changed.
             if (m_window.HaveUserFunctionsChanged)

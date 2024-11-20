@@ -6,6 +6,9 @@ using System.Collections.Generic;
 using Microsoft.UI.Xaml.Controls;
 using System.Text;
 using Microsoft.UI.Windowing;
+using Microsoft.Graphics.Canvas.Text;
+using Microsoft.Graphics.Canvas;
+using Windows.UI.Text;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -18,22 +21,32 @@ namespace GraphEq
     public sealed partial class MainWindow : Window
     {
         static readonly Windows.UI.Color BackColor = Windows.UI.Color.FromArgb(255, 220, 220, 220);
-        static readonly Windows.UI.Color ErrorMessaegColor = Windows.UI.Color.FromArgb(255, 128, 0, 0);
+        static readonly Windows.UI.Color ErrorMessageColor = Windows.UI.Color.FromArgb(255, 128, 0, 0);
+        static readonly Windows.UI.Color CurveColor = Windows.UI.Color.FromArgb(255, 255, 0, 0);
+        static readonly Windows.UI.Color Curve2Color = Windows.UI.Color.FromArgb(255, 0, 0, 255);
 
         // Scale factor and origin for the canvas.
         float m_scale;
         Vector2 m_origin;
 
         // Parser and expression state.
+        struct Formula
+        {
+            public Expr m_expr;
+            public string m_errorMessage;
+        }
         Dictionary<string, FunctionDef> m_userFunctions = new Dictionary<string, FunctionDef>();
         Parser m_parser = new Parser();
         string[] m_varNames = new string[] { "x" };
-        Expr m_expr = null;
-        string m_errorMessage = null;
+        Formula m_formula;
+        Formula m_formula2;
+        string m_userFunctionsErrorMessage = null;
         bool m_haveUserFunctionsChanged = false;
 
         // Device-dependent resources.
         AxisRenderer m_axisRenderer;
+        CanvasTextFormat m_errorHeadingFormat;
+        CanvasTextFormat m_errorTextFormat;
 
         public MainWindow()
         {
@@ -41,9 +54,11 @@ namespace GraphEq
             this.InitializeComponent();
         }
 
+        bool HaveError => m_formula.m_errorMessage != null || m_formula2.m_errorMessage != null || m_userFunctionsErrorMessage != null;
+
         private void CanvasControl_ManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
         {
-            if (m_expr != null)
+            if (!HaveError)
             {
                 var delta = e.Delta;
 
@@ -58,7 +73,7 @@ namespace GraphEq
         {
             var ctrl = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(Windows.System.VirtualKey.Control);
 
-            if (ctrl.HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down))
+            if (ctrl.HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down) && !HaveError)
             {
                 var delta = e.GetCurrentPoint(Canvas).Properties.MouseWheelDelta;
 
@@ -77,17 +92,68 @@ namespace GraphEq
                 );
         }
 
+        private CanvasTextFormat MakeErrorTextFormat(ushort fontWeight)
+        {
+            var textFormat = new CanvasTextFormat();
+            textFormat.FontSize = 16;
+            textFormat.FontFamily = "Segoe UI";
+            textFormat.FontWeight = new FontWeight(fontWeight);
+            return textFormat;
+        }
+
         private void CanvasControl_CreateResources(CanvasControl sender, Microsoft.Graphics.Canvas.UI.CanvasCreateResourcesEventArgs args)
         {
             m_axisRenderer?.Dispose();
             m_axisRenderer = new AxisRenderer(sender);
+
+            m_errorHeadingFormat?.Dispose();
+            m_errorHeadingFormat = MakeErrorTextFormat(700);
+
+            m_errorTextFormat?.Dispose();
+            m_errorTextFormat = MakeErrorTextFormat(400);
+        }
+
+        float DrawErrorText(CanvasDrawingSession drawingSession, float y, string message, CanvasTextFormat textFormat)
+        {
+            const float margin = 10;
+            float formatWidth = (float)Canvas.ActualWidth - (margin * 2);
+
+            using (var textLayout = new CanvasTextLayout(Canvas, message, textFormat, formatWidth, 0))
+            {
+                drawingSession.DrawTextLayout(textLayout, margin, y, ErrorMessageColor);
+                return (float)textLayout.LayoutBounds.Height;
+            }
         }
 
         private void CanvasControl_Draw(CanvasControl sender, CanvasDrawEventArgs args)
         {
             args.DrawingSession.Clear(BackColor);
 
-            if (m_expr != null)
+            if (HaveError)
+            {
+                const float paraGap = 10;
+                float y = 80;
+                if (m_userFunctionsErrorMessage != null)
+                {
+                    y += DrawErrorText(args.DrawingSession, y, "Error in user function", m_errorHeadingFormat);
+                    y += DrawErrorText(args.DrawingSession, y, m_userFunctionsErrorMessage, m_errorTextFormat);
+                    y += paraGap;
+                }
+
+                if (m_formula.m_errorMessage != null)
+                {
+                    y += DrawErrorText(args.DrawingSession, y, "Error in first formula", m_errorHeadingFormat);
+                    y += DrawErrorText(args.DrawingSession, y, m_formula.m_errorMessage, m_errorTextFormat);
+                    y += paraGap;
+                }
+
+                if (m_formula2.m_errorMessage != null)
+                {
+                    y += DrawErrorText(args.DrawingSession, y, "Error in second formula", m_errorHeadingFormat);
+                    y += DrawErrorText(args.DrawingSession, y, m_formula2.m_errorMessage, m_errorTextFormat);
+                }
+            }
+            else
             {
                 // Lazily initialize the transform the first time we draw a graph.
                 if (m_scale == 0)
@@ -98,19 +164,26 @@ namespace GraphEq
                 // Draw the axes.
                 m_axisRenderer.DrawAxes(args.DrawingSession, sender, m_scale, m_origin);
 
+                // Draw the curves for each formula.
+                DrawFormula(args.DrawingSession, m_formula.m_expr, CurveColor);
+                DrawFormula(args.DrawingSession, m_formula2.m_expr, Curve2Color);
+            }
+        }
+
+        void DrawFormula(CanvasDrawingSession drawingSession, Expr expr, Windows.UI.Color color)
+        {
+            if (expr != null)
+            {
                 CurveBuilder.Draw(
-                    args.DrawingSession,
-                    sender,
-                    m_expr,
+                    drawingSession,
+                    Canvas,
+                    expr,
                     m_scale,
                     m_origin,
-                    (float)sender.ActualWidth,
-                    (float)sender.ActualHeight
+                    (float)Canvas.ActualWidth,
+                    (float)Canvas.ActualHeight,
+                    color
                     );
-            }
-            else if (m_errorMessage != null)
-            {
-                args.DrawingSession.DrawText(m_errorMessage, 20, 80, ErrorMessaegColor);
             }
         }
 
@@ -142,63 +215,81 @@ namespace GraphEq
             }
         }
 
-        void SetExpression(Expr expr)
+        void SetExpression(Expr newExpr, ref Formula formula)
         {
-            if (m_errorMessage == null)
+            if (formula.m_errorMessage == null)
             {
-                if (object.ReferenceEquals(expr, m_expr))
+                // Do nothing if the expressions are equivalent.
+                if (object.ReferenceEquals(newExpr, formula.m_expr))
                 {
                     return;
                 }
-
-                if (expr != null && expr.IsEquivalent(m_expr))
+                if (newExpr != null && newExpr.IsEquivalent(formula.m_expr))
                 {
                     return;
                 }
             }
             else
             {
-                m_errorMessage = null;
+                formula.m_errorMessage = null;
             }
 
-            m_expr = expr;
+            formula.m_expr = newExpr;
 
             this.Canvas.Invalidate();
         }
 
-        void SetErrorMessage(string errorMessage)
+        void SetFormulaError(string errorMessage, ref Formula formula)
         {
-            if (errorMessage == m_errorMessage)
+            if (errorMessage != formula.m_errorMessage)
             {
+                formula.m_expr = null;
+                formula.m_errorMessage = errorMessage;
+
+                this.Canvas.Invalidate();
+            }
+        }
+
+        void SetUserFunctionsError(string errorMessage)
+        {
+            if (errorMessage != m_userFunctionsErrorMessage)
+            {
+                m_userFunctionsErrorMessage = errorMessage;
+
+                if (errorMessage != null)
+                {
+                    m_formula.m_errorMessage = null;
+                    m_formula2.m_errorMessage = null;
+                }
+
+                this.Canvas.Invalidate();
+            }
+        }
+
+        void ReparseFormula(TextBox textBox, ref Formula formula)
+        {
+            // Don't try parsing if we don't have user functions.
+            if (m_userFunctions == null)
+            {
+                SetFormulaError(null, ref formula);
                 return;
             }
 
-            m_expr = null;
-            m_errorMessage = errorMessage;
-
-            this.Canvas.Invalidate();
-        }
-
-        void ReparseFormula()
-        {
             try
             {
-                if (m_userFunctions != null)
+                string input = textBox.Text;
+                if (!string.IsNullOrWhiteSpace(input))
                 {
-                    string input = FormulaTextBox.Text;
-                    if (!string.IsNullOrWhiteSpace(input))
-                    {
-                        SetExpression(m_parser.ParseExpression(input, m_userFunctions, m_varNames));
-                    }
-                    else
-                    {
-                        SetExpression(null);
-                    }
+                    SetExpression(m_parser.ParseExpression(input, m_userFunctions, m_varNames), ref formula);
+                }
+                else
+                {
+                    SetExpression(null, ref formula);
                 }
             }
             catch (ParseException x)
             {
-                SetErrorMessage($"Error in formula column {x.InputPos}:\n{x.Message}");
+                SetFormulaError($"Error: column {x.InputPos}: {x.Message}", ref formula);
             }
         }
 
@@ -207,25 +298,33 @@ namespace GraphEq
             try
             {
                 m_userFunctions = m_parser.ParseFunctionDefs(UserFunctionsTextBox.Text);
-                ReparseFormula();
+
+                SetUserFunctionsError(null);
+                ReparseFormula(FormulaTextBox, ref m_formula);
+                ReparseFormula(Formula2TextBox, ref m_formula2);
             }
             catch (ParseException x)
             {
                 m_userFunctions = null;
                 if (!string.IsNullOrEmpty(m_parser.FunctionName))
                 {
-                    SetErrorMessage($"Error in {m_parser.FunctionName} function line {m_parser.LineNumber}, column {x.InputPos}:\n{x.Message}");
+                    SetUserFunctionsError($"Error in {m_parser.FunctionName}.\nError: line {m_parser.LineNumber}, column {x.InputPos}: {x.Message}");
                 }
                 else
                 {
-                    SetErrorMessage($"Error in function definitions line {m_parser.LineNumber}:\n{x.Message}");
+                    SetUserFunctionsError($"Error: line {m_parser.LineNumber}: {x.Message}");
                 }
             }
         }
 
-        private void TextBox_TextChanged(object sender, Microsoft.UI.Xaml.Controls.TextChangedEventArgs e)
+        private void Formula_TextChanged(object sender, Microsoft.UI.Xaml.Controls.TextChangedEventArgs e)
         {
-            ReparseFormula();
+            ReparseFormula(FormulaTextBox, ref m_formula);
+        }
+
+        private void Formula2_TextChanged(object sender, Microsoft.UI.Xaml.Controls.TextChangedEventArgs e)
+        {
+            ReparseFormula(Formula2TextBox, ref m_formula2);
         }
 
         private void UserFunctionsTextBox_TextChanged(object sender, Microsoft.UI.Xaml.Controls.TextChangedEventArgs e)
@@ -234,14 +333,60 @@ namespace GraphEq
             ReparseUserFunctions();
         }
 
-        public string Formula
+        public float Scale
+        {
+            get => m_scale;
+
+            set
+            {
+                if (value > 0 && value != m_scale)
+                {
+                    m_scale = value;
+                    Canvas.Invalidate();
+                }
+            }
+        }
+
+        public Vector2 RelativeOrigin
+        {
+            get => new Vector2(
+                m_origin.X / (float)Canvas.ActualWidth,
+                m_origin.Y / (float)Canvas.ActualHeight
+                );
+
+            set
+            {
+                var origin = new Vector2(
+                    value.X * (float)Canvas.ActualWidth,
+                    value.Y * (float)Canvas.ActualHeight
+                    );
+                if (origin != m_origin)
+                {
+                    m_origin = origin;
+                    Canvas.Invalidate();
+                }
+            }
+        }
+
+        public string FormulaText
         {
             get => FormulaTextBox.Text;
 
             set
             {
                 FormulaTextBox.Text = value;
-                ReparseFormula();
+                ReparseFormula(FormulaTextBox, ref m_formula);
+            }
+        }
+
+        public string Formula2Text
+        {
+            get => Formula2TextBox.Text;
+
+            set
+            {
+                Formula2TextBox.Text = value;
+                ReparseFormula(Formula2TextBox, ref m_formula2);
             }
         }
 

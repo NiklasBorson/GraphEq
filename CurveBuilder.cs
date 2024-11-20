@@ -8,8 +8,6 @@ namespace GraphEq
 {
     internal struct CurveBuilder : IDisposable
     {
-        static readonly Windows.UI.Color CurveColor = Windows.UI.Color.FromArgb(255, 255, 0, 0);
-
         CanvasPathBuilder m_pathBuilder;
         Expr m_expr;
         double[] m_paramValues = new double[1];
@@ -25,14 +23,15 @@ namespace GraphEq
             float scale,
             Vector2 origin,
             float canvasWidth,
-            float canvasHeight
+            float canvasHeight,
+            Windows.UI.Color color
             )
         {
             using (var builder = new CurveBuilder(resourceCreator, expr, scale, origin))
             {
                 using (var geometry = builder.CreateGeometry(canvasWidth, canvasHeight))
                 {
-                    drawingSession.DrawGeometry(geometry, new Vector2(), CurveColor, 2.0f);
+                    drawingSession.DrawGeometry(geometry, new Vector2(), color, 2.0f);
                 }
             }
         }
