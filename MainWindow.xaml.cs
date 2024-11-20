@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Collections.Generic;
 using Microsoft.UI.Xaml.Controls;
 using System.Text;
+using Microsoft.UI.Windowing;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -36,6 +37,7 @@ namespace GraphEq
 
         public MainWindow()
         {
+            this.AppWindow.TitleBar.IconShowOptions = IconShowOptions.HideIconAndSystemMenu;
             this.InitializeComponent();
         }
 

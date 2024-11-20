@@ -65,7 +65,7 @@
                 <Button HorizontalAlignment="Right" ToolTipService.ToolTip="Close side panel." Click="CloseSidePanel_Click">
                     <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE89F;"/>
                 </Button>
-                <TabView Grid.Row="1" VerticalAlignment="Stretch">
+                <TabView Grid.Row="1" VerticalAlignment="Stretch" IsAddTabButtonVisible="False">
                     <TabViewItem Header="Help" IsClosable="False">
                         <ScrollViewer>
                             <TextBox IsReadOnly="True" AcceptsReturn="True" FontFamily="Consolas" Text="{x:Bind HelpText,Mode=OneTime}"/>
