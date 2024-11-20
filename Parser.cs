@@ -321,7 +321,7 @@ namespace GraphEq
 
                 Advance();
                 var expr = ParseUnaryExpr();
-                return new FunctionExpr(op, Precedence.UnaryPrefix, new Expr[] { expr });
+                return new FunctionExpr(op, new Expr[] { expr });
             }
         }
 
@@ -336,7 +336,7 @@ namespace GraphEq
                     throw new ParseException(m_lexer, $"{func.ParamCount} arguments expected for {name}().");
                 }
 
-                return new FunctionExpr(func.Func, Precedence.Atomic, args);
+                return new FunctionExpr(func.Func, args);
             }
             throw new ParseException(m_lexer, $"Unknown function: {name}.");
         }

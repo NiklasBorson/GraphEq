@@ -23,7 +23,6 @@ namespace GraphEq
         public abstract bool IsConstant { get; }
         public virtual Expr Simplify() => this;
         public abstract bool IsEquivalent(Expr other);
-        public virtual Precedence Precedence => Precedence.Atomic;
 
         // Conversion of double to Boolean number.
         public static bool ToBool(double n) => double.IsRealNumber(n) && n != 0.0;
@@ -82,18 +81,16 @@ namespace GraphEq
     sealed class FunctionExpr : Expr
     {
         Function m_func;
-        Precedence m_precedence;
         IList<Expr> m_args;
 
-        public FunctionExpr(Function func, Precedence precedence, IList<Expr> args)
+        public FunctionExpr(Function func, IList<Expr> args)
         {
             m_func = func;
-            m_precedence = precedence;
             m_args = args;
         }
 
         public FunctionExpr(BinaryOp op, Expr left, Expr right) : this(
-            op.Func, op.Precedence, new Expr[] { left, right }
+            op.Func, new Expr[] { left, right }
             )
         {
         }
@@ -157,7 +154,7 @@ namespace GraphEq
                 }
             }
 
-            return new FunctionExpr(m_func, m_precedence, newArgs);
+            return new FunctionExpr(m_func, newArgs);
         }
 
         public override bool IsEquivalent(Expr other)
@@ -177,8 +174,6 @@ namespace GraphEq
 
             return true;
         }
-
-        public override Precedence Precedence => m_precedence;
 
         // Built-in functions.
         public static readonly Dictionary<string, FunctionDef> Functions = new Dictionary<string, FunctionDef>
@@ -439,7 +434,5 @@ namespace GraphEq
 
             return m_expr.IsEquivalent(expr.m_expr) && m_condition.IsEquivalent(expr.m_condition);
         }
-
-        public override Precedence Precedence => Precedence.None;
     }
 }
