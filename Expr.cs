@@ -7,6 +7,9 @@ namespace GraphEq
     enum Precedence
     {
         None,
+        BoolOr,
+        BoolAnd,
+        Comparison,
         AddSub,
         MulDiv,
         Power,
@@ -21,6 +24,9 @@ namespace GraphEq
         public virtual Expr Simplify() => this;
         public abstract bool IsEquivalent(Expr other);
         public virtual Precedence Precedence => Precedence.Atomic;
+
+        // Conversion of double to Boolean number.
+        public static bool ToBool(double n) => double.IsRealNumber(n) && n != 0.0;
     }
 
     sealed class ConstExpr : Expr
@@ -310,6 +316,10 @@ namespace GraphEq
             return x < min ? double.NaN : x > max ? double.NaN : x;
         }
 
+        // Unary operators.
+        public static readonly Function UnaryMinus = (double[] args) => -args[0];
+        public static readonly Function UnaryNot = (double[] args) => (args[0] == 0) ? 1.0 : 0.0;
+
         // Binary operators.
         public static readonly BinaryOp[] BinaryOperators = new BinaryOp[]
         {
@@ -337,7 +347,99 @@ namespace GraphEq
                 SymbolId.Caret,
                 Precedence.Power,
                 (double[] args) => double.Pow(args[0], args[1])
-                )
+                ),
+            new BinaryOp(
+                SymbolId.BoolOr,
+                Precedence.BoolOr,
+                (double[] args) => ToBool(args[0]) || ToBool(args[1]) ? 1.0 : 0.0
+                ),
+            new BinaryOp(
+                SymbolId.BoolAnd,
+                Precedence.BoolAnd,
+                (double[] args) => ToBool(args[0]) && ToBool(args[1]) ? 1.0 : 0.0
+                ),
+            new BinaryOp(
+                SymbolId.LessThan,
+                Precedence.Comparison,
+                (double[] args) => (args[0] < args[1]) ? 1.0 : 0.0
+                ),
+            new BinaryOp(
+                SymbolId.LessThanOrEqual,
+                Precedence.Comparison,
+                (double[] args) => (args[0] <= args[1]) ? 1.0 : 0.0
+                ),
+            new BinaryOp(
+                SymbolId.Equals,
+                Precedence.Comparison,
+                (double[] args) => (args[0] == args[1]) ? 1.0 : 0.0
+                ),
+            new BinaryOp(
+                SymbolId.NotEqual,
+                Precedence.Comparison,
+                (double[] args) => (args[0] != args[1]) ? 1.0 : 0.0
+                ),
+            new BinaryOp(
+                SymbolId.GreaterThan,
+                Precedence.Comparison,
+                (double[] args) => (args[0] > args[1]) ? 1.0 : 0.0
+                ),
+            new BinaryOp(
+                SymbolId.GreaterThanOrEqual,
+                Precedence.Comparison,
+                (double[] args) => (args[0] >= args[1]) ? 1.0 : 0.0
+                ),
         };
+    }
+
+    sealed class DomainLimitExpr : Expr
+    {
+        Expr m_expr;
+        Expr m_condition;
+
+        public DomainLimitExpr(Expr expr, Expr condition)
+        {
+            m_expr = expr;
+            m_condition = condition;
+        }
+
+        public override double Eval(double[] paramValues)
+        {
+            if (ToBool(m_condition.Eval(paramValues)))
+            {
+                return m_expr.Eval(paramValues);
+            }
+            else
+            {
+                return double.NaN;
+            }
+        }
+
+        public override bool IsConstant => false;
+
+        public override Expr Simplify()
+        {
+            var expr = m_expr.Simplify();
+            var condition = m_condition.Simplify();
+
+            if (expr == m_expr && condition == m_condition)
+            {
+                return this;
+            }
+            else
+            {
+                return new DomainLimitExpr(expr, condition);
+            }
+        }
+
+        public override bool IsEquivalent(Expr other)
+        {
+            var expr = other as DomainLimitExpr;
+            if (expr == null)
+                return false;
+
+            return m_expr.IsEquivalent(expr.m_expr) && m_condition.IsEquivalent(expr.m_condition);
+        }
+
+        public override Precedence Precedence => Precedence.None;
     }
 }

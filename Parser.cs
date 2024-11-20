@@ -109,13 +109,9 @@ namespace GraphEq
                 Advance();
 
                 // Parse the expression.
-                var expr = ParseExpr();
-
-                if (m_lexer.TokenType != TokenType.None)
-                    throw new ParseException(m_lexer, "Invalid expression.");
+                var expr = ParseFullExpression();
 
                 // Add the function.
-                expr = expr.Simplify();
                 Function fn = (double[] paramValues) => expr.Eval(paramValues);
                 m_userFunctions.Add(m_functionName, new FunctionDef("", m_varNames.Count, fn));
             }
@@ -136,12 +132,7 @@ namespace GraphEq
             m_lineNumber = 0;
             m_functionName = null;
 
-            var expr = ParseExpr();
-
-            if (m_lexer.TokenType != TokenType.None)
-                throw new ParseException(m_lexer, "Invalid expression.");
-
-            return expr.Simplify();
+            return ParseFullExpression();
         }
 
         void CheckLexerError()
@@ -156,6 +147,33 @@ namespace GraphEq
         {
             m_lexer.Advance();
             CheckLexerError();
+        }
+
+        Expr ParseFullExpression()
+        {
+            var expr = ParseExpr();
+
+            if (m_lexer.TokenSymbol == SymbolId.Comma)
+            {
+                m_lexer.Advance();
+                if (m_lexer.TokenType == TokenType.Identifier && m_lexer.TokenString == "where")
+                {
+                    m_lexer.Advance();
+                    var condition = ParseExpr();
+                    expr = new DomainLimitExpr(expr, condition);
+                }
+                else
+                {
+                    throw new ParseException(m_lexer, "Expected where after ','.");
+                }
+            }
+
+            if (m_lexer.TokenType != TokenType.None)
+            {
+                throw new ParseException(m_lexer, "Invalid expression.");
+            }
+
+            return expr.Simplify();
         }
 
         // expr -> unary (BinOp expr)*
@@ -217,9 +235,10 @@ namespace GraphEq
         {
             switch (id)
             {
-                case SymbolId.Minus: return (double[] args) => -args[0];
-                default: return null;
+                case SymbolId.Minus: return FunctionExpr.UnaryMinus;
+                case SymbolId.BoolNot: return FunctionExpr.UnaryNot;
             }
+            return null;
         }
 
         // unary -> Number

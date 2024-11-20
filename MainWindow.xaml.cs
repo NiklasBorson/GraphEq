@@ -9,6 +9,7 @@ using Microsoft.UI.Windowing;
 using Microsoft.Graphics.Canvas.Text;
 using Microsoft.Graphics.Canvas;
 using Windows.UI.Text;
+using System;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -193,12 +194,28 @@ namespace GraphEq
             {
                 var b = new StringBuilder();
                 b.Append(
-                    "Operators:\n" +
-                    " +  Plus\n" +
-                    " -  Minus\n" +
-                    " *  Multiply\n" +
-                    " /  Divide\n" +
-                    " ^  Power\n" +
+                    "Unary operators:\n" +
+                    " -    Negative\n" +
+                    " !    Logical NOT\n" +
+                    "\n" +
+                    "Binary operators:\n" +
+                    " +    Plus\n" +
+                    " -    Minus\n" +
+                    " *    Multiply\n" +
+                    " /    Divide\n" +
+                    " ^    Power\n" +
+                    " >    Greater than\n" +
+                    " >=   Greater than or equal to\n" +
+                    " <    Less than\n" +
+                    " <=   Less than or equal to\n" +
+                    " =    Equal to\n" +
+                    " !=   Not equal to\n" +
+                    " &&   Logical AND\n" +
+                    " ||   Logical OR\n" +
+                    "\n" +
+                    "Ternary operator:\n" +
+                    " a ? b : c\n" +
+                    "      If a then b, else c\n" +
                     "\n" +
                     "Intrinsic functions:"
                     );
