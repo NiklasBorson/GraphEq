@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Text;
 
 namespace GraphEq
 {
@@ -22,7 +20,7 @@ namespace GraphEq
     internal class Parser
     {
         Lexer m_lexer = new Lexer();
-        Dictionary<string, FunctionDef> m_userFunctions;
+        Dictionary<string, UserFunctionDef> m_userFunctions;
         IList<string> m_varNames;
         int m_lineNumber = 0;
         string m_functionName = null;
@@ -31,9 +29,9 @@ namespace GraphEq
         {
         }
 
-        public Dictionary<string, FunctionDef> ParseFunctionDefs(string input)
+        public Dictionary<string, UserFunctionDef> ParseFunctionDefs(string input)
         {
-            m_userFunctions = new Dictionary<string, FunctionDef>();
+            m_userFunctions = new Dictionary<string, UserFunctionDef>();
             m_varNames = new List<string>();
             m_lineNumber = 0;
             m_functionName = null;
@@ -63,7 +61,7 @@ namespace GraphEq
                     throw new ParseException(m_lexer, "Function name expected.");
                 }
                 m_functionName = m_lexer.TokenString;
-                if (FunctionExpr.Functions.ContainsKey(m_functionName) || m_userFunctions.ContainsKey(m_functionName))
+                if (FunctionDefs.Functions.ContainsKey(m_functionName) || m_userFunctions.ContainsKey(m_functionName))
                 {
                     throw new ParseException(m_lexer, $"Function {m_functionName} is already defined.");
                 }
@@ -109,15 +107,10 @@ namespace GraphEq
                 Advance();
 
                 // Parse the expression.
-                var expr = ParseExpr();
-
-                if (m_lexer.TokenType != TokenType.None)
-                    throw new ParseException(m_lexer, "Invalid expression.");
+                var expr = ParseFullExpression();
 
                 // Add the function.
-                expr = expr.Simplify();
-                Function fn = (double[] paramValues) => expr.Eval(paramValues);
-                m_userFunctions.Add(m_functionName, new FunctionDef("", m_varNames.Count, fn));
+                m_userFunctions.Add(m_functionName, new UserFunctionDef(m_varNames.Count, expr));
             }
 
             return m_userFunctions;
@@ -126,7 +119,7 @@ namespace GraphEq
         public int LineNumber => m_lineNumber;
         public string FunctionName => m_functionName;
 
-        public Expr ParseExpression(string input, Dictionary<string, FunctionDef> userFunctions, string[] varNames)
+        public Expr ParseExpression(string input, Dictionary<string, UserFunctionDef> userFunctions, string[] varNames)
         {
             m_lexer.InputString = input;
             CheckLexerError();
@@ -136,12 +129,7 @@ namespace GraphEq
             m_lineNumber = 0;
             m_functionName = null;
 
-            var expr = ParseExpr();
-
-            if (m_lexer.TokenType != TokenType.None)
-                throw new ParseException(m_lexer, "Invalid expression.");
-
-            return expr.Simplify();
+            return ParseFullExpression();
         }
 
         void CheckLexerError()
@@ -158,11 +146,70 @@ namespace GraphEq
             CheckLexerError();
         }
 
-        // expr -> unary (BinOp expr)*
+        Expr ParseFullExpression()
+        {
+            var expr = ParseExpr();
+
+            if (m_lexer.TokenSymbol == SymbolId.Comma)
+            {
+                m_lexer.Advance();
+                if (m_lexer.TokenType == TokenType.Identifier && m_lexer.TokenString == "where")
+                {
+                    m_lexer.Advance();
+                    var condition = ParseExpr();
+                    expr = new TernaryExpr(condition, expr, Constants.NaN);
+                }
+                else
+                {
+                    throw new ParseException(m_lexer, "Expected where after ','.");
+                }
+            }
+
+            if (m_lexer.TokenType != TokenType.None)
+            {
+                throw new ParseException(m_lexer, "Invalid expression.");
+            }
+
+            return expr.Simplify();
+        }
+
         Expr ParseExpr()
         {
+            var expr = ParseBinaryExpr();
+
+            // Is it a ternary expression: expr ? first : second
+            if (m_lexer.TokenSymbol == SymbolId.QuestionMark)
+            {
+                // Advance past the '?'.
+                Advance();
+
+                // Parse the first subexpression.
+                var first = ParseBinaryExpr();
+
+                // Advacne past the ':'.
+                if (m_lexer.TokenSymbol != SymbolId.Colon)
+                {
+                    throw new ParseException(m_lexer, "Expected ':'.");
+                }
+                Advance();
+
+                // Parse the second subexpression.
+                var second = ParseExpr();
+
+                // Create the ternary expression.
+                expr = new TernaryExpr(expr, first, second);
+            }
+
+            return expr;
+        }
+
+        // expr -> unary (BinOp expr)*
+        Expr ParseBinaryExpr()
+        {
             if (!m_lexer.HaveToken)
+            {
                 throw new ParseException(m_lexer, "Expected expression.");
+            }
 
             var expr = ParseUnaryExpr();
 
@@ -194,7 +241,7 @@ namespace GraphEq
                 }
 
                 // Replace the left-hand expression with the binary expression.
-                left = new FunctionExpr(op, left, right);
+                left = new BinaryExpr(op.Op, left, right);
 
                 op = nextOp;
             }
@@ -203,23 +250,18 @@ namespace GraphEq
 
         static BinaryOp GetBinaryOp(SymbolId id)
         {
-            foreach (var op in FunctionExpr.BinaryOperators)
-            {
-                if (op.Symbol == id)
-                {
-                    return op;
-                }
-            }
-            return null;
+            BinaryOp op;
+            return BinaryOps.Operators.TryGetValue(id, out op) ? op : null;
         }
 
-        static Function GetUnaryPrefixOp(SymbolId id)
+        static UnaryExpr.Op GetUnaryPrefixOp(SymbolId id)
         {
             switch (id)
             {
-                case SymbolId.Minus: return (double[] args) => -args[0];
-                default: return null;
+                case SymbolId.Minus: return UnaryOps.UnaryMinus;
+                case SymbolId.BoolNot: return UnaryOps.UnaryNot;
             }
+            return null;
         }
 
         // unary -> Number
@@ -275,7 +317,7 @@ namespace GraphEq
 
                     // Is it a named constant?
                     ConstExpr constExpr;
-                    if (ConstExpr.NamedConstants.TryGetValue(name, out constExpr))
+                    if (Constants.NamedConstants.TryGetValue(name, out constExpr))
                     {
                         return constExpr;
                     }
@@ -301,25 +343,58 @@ namespace GraphEq
                     throw new ParseException(m_lexer, "Invalid expression.");
 
                 Advance();
-                var expr = ParseUnaryExpr();
-                return new FunctionExpr(op, Precedence.UnaryPrefix, new Expr[] { expr });
+                return new UnaryExpr(op, ParseUnaryExpr());
             }
         }
 
         Expr CreateFunctionExpression(string name, List<Expr> args)
         {
-            FunctionDef func;
-            if (FunctionExpr.Functions.TryGetValue(name, out func) ||
-                m_userFunctions.TryGetValue(name, out func))
+            var expr = TryCreateIntrinsicFunction(name, args);
+            if (expr != null)
             {
-                if (func.ParamCount != args.Count)
-                {
-                    throw new ParseException(m_lexer, $"{func.ParamCount} arguments expected for {name}().");
-                }
-
-                return new FunctionExpr(func.Func, Precedence.Atomic, args);
+                return expr;
             }
+
+
+            expr = TryCreateUserFunction(name, args);
+            if (expr != null)
+            {
+                return expr;
+            }
+
             throw new ParseException(m_lexer, $"Unknown function: {name}.");
+        }
+
+        Expr TryCreateIntrinsicFunction(string name, List<Expr> args)
+        {
+            FunctionDef def;
+            if (!FunctionDefs.Functions.TryGetValue(name, out def))
+            {
+                return null;
+            }
+
+            if (def.ParamCount != args.Count)
+            {
+                throw new ParseException(m_lexer, $"{def.ParamCount} arguments expected for {name}().");
+            }
+
+            return new FunctionExpr(def.Op, args);
+        }
+
+        Expr TryCreateUserFunction(string name, List<Expr> args)
+        {
+            UserFunctionDef def;
+            if (!m_userFunctions.TryGetValue(name, out def))
+            {
+                return null;
+            }
+
+            if (def.ParamCount != args.Count)
+            {
+                throw new ParseException(m_lexer, $"{def.ParamCount} arguments expected for {name}().");
+            }
+
+            return new UserFunctionExpr(def.Body, args);
         }
     }
 }

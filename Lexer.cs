@@ -18,11 +18,22 @@ namespace GraphEq
         Minus,
         Multiply,
         Divide,
+        Percent,
         Caret,
         LeftParen,
         RightParen,
         Comma,
-        Equals
+        Equals,
+        BoolOr,
+        BoolAnd,
+        BoolNot,
+        LessThan,
+        LessThanOrEqual,
+        GreaterThan,
+        GreaterThanOrEqual,
+        NotEqual,
+        QuestionMark,
+        Colon
     }
 
     internal class Lexer
@@ -72,7 +83,7 @@ namespace GraphEq
 
         const string m_numberRegex = @"[0-9]*\.?[0-9]+(?:[Ee][+-]?[0-9]+)?";
         const string m_identifierRegex = @"[A-Za-z_][A-Za-z_0-9]*";
-        const string m_symbolRegex = @"[+\-*/^(),=]";
+        const string m_symbolRegex = @"[+\-*/%^(),=?:]|[!<>]=?|\|\||&&";
 
         // Regular expression that matches one token.
         // Each capture group cooresponds to a token type.
@@ -117,7 +128,10 @@ namespace GraphEq
             else if (IsGroupMatch(3, TokenType.Symbol))
             {
                 // Symbol.
-                m_symbolId = CharToSymbol(m_input[m_matchPos]);
+                m_symbolId = CharToSymbol(
+                    m_input[m_matchPos],
+                    m_matchLength > 1 ? m_input[m_matchPos + 1] : '\0'
+                    );
             }
             else if (IsGroupMatch(4, TokenType.None))
             {
@@ -148,7 +162,7 @@ namespace GraphEq
             }
         }
 
-        static SymbolId CharToSymbol(char ch)
+        static SymbolId CharToSymbol(char ch, char ch2)
         {
             switch (ch)
             {
@@ -156,11 +170,19 @@ namespace GraphEq
                 case '-': return SymbolId.Minus;
                 case '*': return SymbolId.Multiply;
                 case '/': return SymbolId.Divide;
+                case '%': return SymbolId.Percent;
                 case '^': return SymbolId.Caret;
                 case '(': return SymbolId.LeftParen;
                 case ')': return SymbolId.RightParen;
                 case ',': return SymbolId.Comma;
                 case '=': return SymbolId.Equals;
+                case '|': return SymbolId.BoolOr;
+                case '&': return SymbolId.BoolAnd;
+                case '!': return ch2 == '=' ? SymbolId.NotEqual : SymbolId.BoolNot;
+                case '<': return ch2 == '=' ? SymbolId.LessThanOrEqual : SymbolId.LessThan;
+                case '>': return ch2 == '=' ? SymbolId.GreaterThanOrEqual : SymbolId.GreaterThan;
+                case '?': return SymbolId.QuestionMark;
+                case ':': return SymbolId.Colon;
                 default: return SymbolId.None;
             }
         }

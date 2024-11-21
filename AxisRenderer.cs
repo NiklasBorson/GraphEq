@@ -12,8 +12,6 @@ namespace GraphEq
         static readonly Windows.UI.Color GridColor = Windows.UI.Color.FromArgb(255, 255, 255, 255);
         static readonly Windows.UI.Color AxisColor = Windows.UI.Color.FromArgb(255, 20, 20, 20);
 
-        ICanvasResourceCreator m_resourceCreator;
-        Dictionary<float, CanvasTextLayout> m_labels = new Dictionary<float, CanvasTextLayout>();
         CanvasTextFormat m_labelFormat = new CanvasTextFormat
         {
             WordWrapping = CanvasWordWrapping.NoWrap,
@@ -21,6 +19,11 @@ namespace GraphEq
             FontSize = 12.0f,
             FontFamily = "Cambria"
         };
+
+        // Dictionary of labels so we can reuse the same CanvasTextLayout object every
+        // time we draw the same number.
+        ICanvasResourceCreator m_resourceCreator;
+        Dictionary<float, CanvasTextLayout> m_labels = new Dictionary<float, CanvasTextLayout>();
 
         public AxisRenderer(ICanvasResourceCreator resourceCreator)
         {
@@ -34,16 +37,22 @@ namespace GraphEq
             Vector2 origin
             )
         {
+            // Determine how far about axis labels are in logical units.
             float unit = AxisUnitFromScale(scale);
-            float spacing = unit * scale;
+
+            // Get the canvas width and height.
             float height = (float)canvas.ActualHeight;
             float width = (float)canvas.ActualWidth;
 
+            // Draw both axes in three passes:
+            //  1. Grid lines
+            //  2. Axes and tick marks
+            //  3. Text labels
             for (int layer = 0; layer < 3; layer++)
             {
                 // Draw the Y axis.
                 g.Transform = Matrix3x2.CreateTranslation(origin.X, origin.Y);
-                DrawAxis(
+                DrawVerticalAxis(
                     g, 
                     scale, 
                     unit, 
@@ -54,10 +63,16 @@ namespace GraphEq
                     layer
                     );
 
-                // Draw the X axis by rotating 90 degrees to the right.
+                // Draw the X axis.
+                // This is just a vertical axis rotated right 90 degrees.
+                // Note that:
+                //  - minY/maxY are distances along the "vertical" axis. Because of
+                //    rotation, these are computed from origin.X and width.
+                //  - minX/maxX are distances perpendicular to the axis, so are
+                //    computed from origin.Y and height.
                 g.Transform = Matrix3x2.CreateRotation(float.Pi / 2) *
                     Matrix3x2.CreateTranslation(origin.X, origin.Y);
-                DrawAxis(
+                DrawVerticalAxis(
                     g, 
                     scale, 
                     unit,
@@ -69,10 +84,31 @@ namespace GraphEq
                     );
             }
 
+            // Restore the original transform.
             g.Transform = Matrix3x2.Identity;
         }
 
-        void DrawAxis(
+        // Draws the Y axis.
+        //
+        // This is also called with a rotate transform to draw the X axis, but
+        // the logic inside this method is exactly the same. An X axis is just a
+        // Y axis rotated 90 degrees to the right.
+        //
+        // In rendering coordinates:
+        //
+        //   - (0, 0) corresponds to the logical (Cartesian) origin
+        //
+        //   - The positive Y direction is down, corresponding to negative
+        //     Y coordiantes in the Cartesian coordinate space.
+        //
+        //   - No scaling is applied so (0, scale) corresponds to (0, -1)
+        //     in Cartesian coordinates.
+        //
+        //   - (minX, minY) is the top-left visible pixel.
+        //
+        //   - (maxX, maxY) is the bottom-right visible pixel.
+        //
+        void DrawVerticalAxis(
             CanvasDrawingSession g, 
             float scale, 
             float unit, 
@@ -176,8 +212,11 @@ namespace GraphEq
             return float.Pow(2, e);
         }
 
+        // Gets a CanvasTextLayout for a number.
         private CanvasTextLayout GetLabel(float value)
         {
+            // Use a dictionary so we can reuse the same CanvasTextLayout object when
+            // drawing the same number.
             CanvasTextLayout result;
             if (!m_labels.TryGetValue(value, out result))
             {
@@ -189,6 +228,8 @@ namespace GraphEq
 
         public void Dispose()
         {
+            m_labelFormat.Dispose();
+
             foreach (var label in m_labels.Values)
             {
                 label.Dispose();

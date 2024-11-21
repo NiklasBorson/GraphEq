@@ -69,24 +69,24 @@
 
         <!-- The side panel spans all rows and columns but is right-aligned with a fixed width -->
         <Border x:Name="SidePanel"
-                Width="300" Grid.RowSpan="3" Grid.ColumnSpan="4" HorizontalAlignment="Right"
+                Width="400" Grid.RowSpan="3" Grid.ColumnSpan="4" HorizontalAlignment="Right"
                 Background="{ThemeResource ContentDialogBackgroundThemeBrush}" BorderBrush="DarkSlateGray" BorderThickness="2" Padding="3">
             <Border.Resources>
                 <Storyboard x:Name="SidePanelOpenAnimation">
                     <DoubleAnimation 
                         Storyboard.TargetName="SidePanelTranslation"
                         Storyboard.TargetProperty="X"
-                        From="300" To="0" Duration="0:0:0.1"/>
+                        From="{x:Bind SidePanel.Width}" To="0" Duration="0:0:0.1"/>
                 </Storyboard>
                 <Storyboard x:Name="SidePanelCloseAnimation">
                     <DoubleAnimation 
                         Storyboard.TargetName="SidePanelTranslation"
                         Storyboard.TargetProperty="X"
-                        From="0" To="300" Duration="0:0:0.1"/>
+                        From="0" To="{x:Bind SidePanel.Width}" Duration="0:0:0.1"/>
                 </Storyboard>
             </Border.Resources>
             <Border.RenderTransform>
-                <TranslateTransform x:Name="SidePanelTranslation" X="300"/>
+                <TranslateTransform x:Name="SidePanelTranslation" X="{x:Bind SidePanel.Width}"/>
             </Border.RenderTransform>
             <Grid >
                 <Grid.RowDefinitions>
@@ -108,6 +108,7 @@
                                 x:Name="UserFunctionsTextBox"
                                 IsSpellCheckEnabled="False"
                                 AcceptsReturn="True" 
+                                TextWrapping="Wrap"
                                 TextChanged="UserFunctionsTextBox_TextChanged" 
                                 PlaceholderText="; Examples&#10;pow(x,y) = x^y&#10;circle_area(r) = pi * r^2"/>
                         </ScrollViewer>

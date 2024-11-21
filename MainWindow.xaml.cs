@@ -9,6 +9,7 @@ using Microsoft.UI.Windowing;
 using Microsoft.Graphics.Canvas.Text;
 using Microsoft.Graphics.Canvas;
 using Windows.UI.Text;
+using System;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -35,7 +36,7 @@ namespace GraphEq
             public Expr m_expr;
             public string m_errorMessage;
         }
-        Dictionary<string, FunctionDef> m_userFunctions = new Dictionary<string, FunctionDef>();
+        Dictionary<string, UserFunctionDef> m_userFunctions = new Dictionary<string, UserFunctionDef>();
         Parser m_parser = new Parser();
         string[] m_varNames = new string[] { "x" };
         Formula m_formula;
@@ -193,23 +194,43 @@ namespace GraphEq
             {
                 var b = new StringBuilder();
                 b.Append(
-                    "Operators:\n" +
-                    " +  Plus\n" +
-                    " -  Minus\n" +
-                    " *  Multiply\n" +
-                    " /  Divide\n" +
-                    " ^  Power\n" +
+                    "Unary operators:\n" +
+                    " -   Negative\n" +
+                    " !   Logical NOT\n" +
                     "\n" +
-                    "Intrinsic functions:"
+                    "Binary operators:\n"
                     );
-                foreach (var funcDef in FunctionExpr.Functions.Values)
+                foreach (var op in BinaryOps.Operators.Values)
                 {
-                    b.AppendFormat("\n \x2022 {0}", funcDef.Signature);
+                    b.Append(op.Description);
+                    b.Append('\n');
                 }
-                b.Append("\n\nConstants:");
-                foreach (var s in ConstExpr.NamedConstants.Keys)
+                b.Append(
+                    "\n" +
+                    "Ternary operator:\n" +
+                    " a ? b : c\n" +
+                    "     Returns b if a is true.\n" +
+                    "     Otherwise returns c.\n" +
+                    "\n" +
+                    "Intrinsic functions:\n"
+                    );
+                foreach (var funcDef in FunctionDefs.Functions.Values)
                 {
-                    b.AppendFormat("\n \x2022 {0}", s);
+                    b.AppendFormat(" \x2022 {0}\n", funcDef.Signature);
+                }
+                b.Append(
+                    "\n" +
+                    "Boolean values:\n" +
+                    " \x2022 True = 1.\n" +
+                    " \x2022 False = NaN.\n" +
+                    " \x2022 Any nonzero real number evaluates as True.\n" +
+                    " \x2022 NaN, 0, inf, and -inf evaluate as False.\n" +
+                    "\n" +
+                    "Constants:\n"
+                    );
+                foreach (var s in Constants.NamedConstants.Keys)
+                {
+                    b.AppendFormat(" \x2022 {0}\n", s);
                 }
                 return b.ToString();
             }
