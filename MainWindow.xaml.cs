@@ -9,7 +9,6 @@ using Microsoft.UI.Windowing;
 using Microsoft.Graphics.Canvas.Text;
 using Microsoft.Graphics.Canvas;
 using Windows.UI.Text;
-using System;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -26,9 +25,11 @@ namespace GraphEq
         static readonly Windows.UI.Color CurveColor = Windows.UI.Color.FromArgb(255, 255, 0, 0);
         static readonly Windows.UI.Color Curve2Color = Windows.UI.Color.FromArgb(255, 0, 0, 255);
 
-        // Scale factor and origin for the canvas.
-        float m_scale;
-        Vector2 m_origin;
+        // Scale factor for the canvas.
+        float m_scale = 50;
+
+        // The origin is stored relative to the canvas size.
+        Vector2 m_relativeOrigin = new Vector2(0.5f, 0.5f);
 
         // Parser and expression state.
         struct Formula
@@ -64,7 +65,7 @@ namespace GraphEq
                 var delta = e.Delta;
 
                 m_scale *= delta.Scale;
-                m_origin += delta.Translation.ToVector2();
+                PixelOrigin += delta.Translation.ToVector2();
 
                 this.Canvas.Invalidate();
             }
@@ -82,15 +83,6 @@ namespace GraphEq
 
                 this.Canvas.Invalidate();
             }
-        }
-
-        private void SetDefaultTransform()
-        {
-            m_scale = 50;
-            m_origin = new Vector2(
-                (float)this.Canvas.ActualWidth / 2,
-                (float)this.Canvas.ActualHeight / 2
-                );
         }
 
         private CanvasTextFormat MakeErrorTextFormat(ushort fontWeight)
@@ -156,14 +148,8 @@ namespace GraphEq
             }
             else
             {
-                // Lazily initialize the transform the first time we draw a graph.
-                if (m_scale == 0)
-                {
-                    SetDefaultTransform();
-                }
-
                 // Draw the axes.
-                m_axisRenderer.DrawAxes(args.DrawingSession, sender, m_scale, m_origin);
+                m_axisRenderer.DrawAxes(args.DrawingSession, sender, m_scale, PixelOrigin);
 
                 // Draw the curves for each formula.
                 DrawFormula(args.DrawingSession, m_formula.m_expr, CurveColor);
@@ -180,9 +166,8 @@ namespace GraphEq
                     Canvas,
                     expr,
                     m_scale,
-                    m_origin,
-                    (float)Canvas.ActualWidth,
-                    (float)Canvas.ActualHeight,
+                    PixelOrigin,
+                    CanvasSize,
                     color
                     );
             }
@@ -370,24 +355,30 @@ namespace GraphEq
 
         public Vector2 RelativeOrigin
         {
-            get => new Vector2(
-                m_origin.X / (float)Canvas.ActualWidth,
-                m_origin.Y / (float)Canvas.ActualHeight
-                );
+            get => m_relativeOrigin;
 
             set
             {
-                var origin = new Vector2(
-                    value.X * (float)Canvas.ActualWidth,
-                    value.Y * (float)Canvas.ActualHeight
-                    );
-                if (origin != m_origin)
+                if (m_relativeOrigin != value)
                 {
-                    m_origin = origin;
+                    m_relativeOrigin = value;
                     Canvas.Invalidate();
                 }
             }
         }
+
+        public Vector2 PixelOrigin
+        {
+            get => RelativeOrigin * CanvasSize;
+
+            set
+            {
+                RelativeOrigin = value / CanvasSize;
+            }
+        }
+
+        public Vector2 CanvasSize => new Vector2((float)Canvas.ActualWidth, (float)Canvas.ActualHeight);
+
 
         public string FormulaText
         {
@@ -426,8 +417,7 @@ namespace GraphEq
 
         private void CenterButton_Click(object sender, RoutedEventArgs e)
         {
-            SetDefaultTransform();
-            Canvas.Invalidate();
+            RelativeOrigin = new Vector2(0.5f, 0.5f);
         }
 
         private void OpenSidePanel_Click(object sender, RoutedEventArgs e)

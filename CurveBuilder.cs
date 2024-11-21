@@ -22,14 +22,13 @@ namespace GraphEq
             Expr expr,
             float scale,
             Vector2 origin,
-            float canvasWidth,
-            float canvasHeight,
+            Vector2 canvasSize,
             Windows.UI.Color color
             )
         {
             using (var builder = new CurveBuilder(resourceCreator, expr, scale, origin))
             {
-                using (var geometry = builder.CreateGeometry(canvasWidth, canvasHeight))
+                using (var geometry = builder.CreateGeometry(canvasSize))
                 {
                     drawingSession.DrawGeometry(geometry, new Vector2(), color, 2.0f);
                 }
@@ -45,10 +44,10 @@ namespace GraphEq
             m_origin = origin.ToPoint();
         }
 
-        public CanvasGeometry CreateGeometry(double canvasWidth, double canvasHeight)
+        public CanvasGeometry CreateGeometry(Vector2 canvasSize)
         {
             // Ensure we have a buffer big enough for the maximum number of points.
-            int maxPoints = (int)double.Ceiling(canvasWidth) + 1;
+            int maxPoints = (int)double.Ceiling(canvasSize.X) + 1;
             if (m_figurePoints == null || m_figurePoints.Length < maxPoints)
             {
                 m_figurePoints = new Point[maxPoints];
@@ -60,7 +59,7 @@ namespace GraphEq
             {
                 double x = i;
                 double y = GetY(x);
-                bool isVisible = y >= 0 && y <= canvasHeight;
+                bool isVisible = y >= 0 && y <= canvasSize.Y;
 
                 if (pointCount != 0)
                 {
@@ -76,7 +75,7 @@ namespace GraphEq
                         }
 
                         // Add the current figure and begin a new one.
-                        AddFigure(m_figurePoints.AsSpan(0, pointCount), canvasWidth, canvasHeight);
+                        AddFigure(m_figurePoints.AsSpan(0, pointCount), canvasSize);
                         pointCount = 0;
                     }
                 }
@@ -90,21 +89,21 @@ namespace GraphEq
 
             if (pointCount != 0)
             {
-                AddFigure(m_figurePoints.AsSpan(0, pointCount), canvasWidth, canvasHeight);
+                AddFigure(m_figurePoints.AsSpan(0, pointCount), canvasSize);
             }
 
             return CanvasGeometry.CreatePath(m_pathBuilder);
         }
 
-        void AddFigure(Span<Point> points, double canvasWidth, double canvasHeight)
+        void AddFigure(Span<Point> points, Vector2 canvasSize)
         {
             // Begin the figure and add the first point.
             var first = points[0];
-            if (first.X > 0 && first.Y > 0 && first.Y < canvasHeight)
+            if (first.X > 0 && first.Y > 0 && first.Y < canvasSize.Y)
             {
                 // The first point is visible. Interpolate to find a connected point to its
                 // left so we can draw asymptotes correctly.
-                var pt = FindFigureEndPoint(first, first.X - 1, canvasHeight);
+                var pt = FindFigureEndPoint(first, first.X - 1, canvasSize.X);
                 m_pathBuilder.BeginFigure(pt.ToVector2());
                 m_pathBuilder.AddLine(first.ToVector2());
             }
@@ -122,9 +121,9 @@ namespace GraphEq
             // If the last point is visible, interpolate to find a connected point to its
             // right so we can draw asymptotes correctly.
             var last = points[points.Length - 1];
-            if (last.X < canvasWidth && last.Y > 0 && last.Y < canvasHeight)
+            if (last.X < canvasSize.X && last.Y > 0 && last.Y < canvasSize.Y)
             {
-                var pt = FindFigureEndPoint(last, last.X + 1, canvasHeight);
+                var pt = FindFigureEndPoint(last, last.X + 1, canvasSize.Y);
                 m_pathBuilder.AddLine(pt.ToVector2());
             }
 

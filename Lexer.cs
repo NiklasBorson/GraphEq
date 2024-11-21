@@ -1,4 +1,4 @@
-﻿using System.Text.RegularExpressions;
+﻿using System;
 
 namespace GraphEq
 {
@@ -40,7 +40,6 @@ namespace GraphEq
     {
         // Input string and position.
         string m_input = string.Empty;
-        Match m_match = Match.Empty;
         int m_matchPos = 0;
         int m_matchLength = 0;
 
@@ -55,8 +54,9 @@ namespace GraphEq
         public TokenType TokenType => m_tokenType;
         public SymbolId TokenSymbol => m_symbolId;
         public double TokenValue => m_value;
-        public int TokenPos => m_match.Index;
+        public int TokenPos => m_matchPos;
         public string TokenString => m_input.Substring(m_matchPos, m_matchLength);
+        public ReadOnlySpan<char> TokenSpan => m_input.AsSpan().Slice(m_matchPos, m_matchLength);
 
         // Input string property.
         public string InputString
@@ -69,122 +69,149 @@ namespace GraphEq
             set
             {
                 m_input = value;
-                m_match = m_pattern.Match(m_input);
-                InitializeToken();
+                m_matchPos = 0;
+                m_matchLength = 0;
+                Advance();
             }
         }
 
         // Advance to the first or next token in the input string.
         public void Advance()
         {
-            m_match = m_match.NextMatch();
-            InitializeToken();
-        }
-
-        const string m_numberRegex = @"[0-9]*\.?[0-9]+(?:[Ee][+-]?[0-9]+)?";
-        const string m_identifierRegex = @"[A-Za-z_][A-Za-z_0-9]*";
-        const string m_symbolRegex = @"[+\-*/%^(),=?:]|[!<>]=?|\|\||&&";
-
-        // Regular expression that matches one token.
-        // Each capture group cooresponds to a token type.
-        static readonly Regex m_pattern = new Regex(
-            " *(?:" +
-            $"({m_numberRegex})" +          // 1 -> number
-            $"|({m_identifierRegex})" +     // 2 -> identifier
-            $"|({m_symbolRegex})" +         // 3 -> symbol
-            "|($)" +                        // 4 -> end of input
-            ")"
-            );
-
-        void InitializeToken()
-        {
-            // Clear the token properties.
+            // Reset the current token.
             m_tokenType = TokenType.None;
             m_symbolId = SymbolId.None;
             m_value = double.NaN;
 
-            // Initialize the match position to the end of the previous token.
-            m_matchPos += m_matchLength;
+            // Advance to the next non-whitespace character after the current match.
+            m_matchPos = SkipWhiteSpace(m_input, m_matchPos + m_matchLength);
             m_matchLength = 0;
 
-            if (m_match.Index > m_matchPos)
+            if (m_matchPos == m_input.Length)
             {
-                // Unexpected characters between matches.
-                m_tokenType = TokenType.Error;
-                m_matchLength = m_match.Index - m_matchPos;
+                return;
             }
-            else if (IsGroupMatch(1, TokenType.Number))
+
+            // Get the first two characters of the token.
+            char ch = m_input[m_matchPos];
+            char next = m_matchPos + 1 < m_input.Length ? m_input[m_matchPos + 1] : '\0';
+
+            if (IsNumberStart(ch, next))
             {
-                // Number.
-                if (!double.TryParse(this.TokenString, out m_value))
+                m_matchLength = FindNumberEnd(m_input, m_matchPos) - m_matchPos;
+
+                if (double.TryParse(TokenSpan, out m_value))
+                {
+                    m_tokenType = TokenType.Number;
+                }
+                else
                 {
                     m_tokenType = TokenType.Error;
                 }
             }
-            else if (IsGroupMatch(2, TokenType.Identifier))
+            else if (IsNameChar(ch))
             {
-                // Identifier.
-            }
-            else if (IsGroupMatch(3, TokenType.Symbol))
-            {
-                // Symbol.
-                m_symbolId = CharToSymbol(
-                    m_input[m_matchPos],
-                    m_matchLength > 1 ? m_input[m_matchPos + 1] : '\0'
-                    );
-            }
-            else if (IsGroupMatch(4, TokenType.None))
-            {
-                // End of input.
+                m_matchLength = FindNameEnd(m_input, m_matchPos) - m_matchPos;
+                m_tokenType = TokenType.Identifier;
             }
             else
             {
-                // No match.
-                m_tokenType = TokenType.Error;
-                m_matchPos = m_match.Index;
-                m_matchLength = 0;
+                var (id, length) = TryMatchSymbol(ch, next);
+                if (length > 0)
+                {
+                    m_matchLength = length;
+                    m_symbolId = id;
+                    m_tokenType = TokenType.Symbol;
+                }
+                else
+                {
+                    m_tokenType = TokenType.Error;
+                }
             }
         }
 
-        bool IsGroupMatch(int groupIndex, TokenType tokenType)
+        static int SkipWhiteSpace(string input, int pos)
         {
-            var group = m_match.Groups[groupIndex];
-            if (group.Success)
+            while (pos < input.Length && char.IsWhiteSpace(input[pos]))
             {
-                m_tokenType = tokenType;
-                m_matchPos = group.Index;
-                m_matchLength = group.Length;
-                return true;
+                ++pos;
             }
-            else
-            {
-                return false;
-            }
+            return pos;
         }
 
-        static SymbolId CharToSymbol(char ch, char ch2)
+        static bool IsNameStartChar(char ch) => char.IsLetter(ch) || ch == '_';
+        static bool IsNameChar(char ch) => char.IsLetterOrDigit(ch) || ch == '_';
+
+        static int FindNameEnd(string input, int pos)
+        {
+            while (pos < input.Length && IsNameChar(input[pos]))
+            {
+                ++pos;
+            }
+            return pos;
+        }
+
+        static bool IsNumberStart(char ch, char next) => char.IsAsciiDigit(ch) || (ch == '.' && char.IsAsciiDigit(next));
+
+        static int SkipDigits(string input, int pos)
+        {
+            while (pos < input.Length && char.IsAsciiDigit(input[pos]))
+            {
+                ++pos;
+            }
+            return pos;
+        }
+
+        static int FindNumberEnd(string input, int startPos)
+        {
+            // Advance past leading digits.
+            int pos = SkipDigits(input, startPos);
+
+            // Advance past decimal point and subsequent digits.
+            if (pos + 1 < input.Length && input[pos] == '.' && char.IsAsciiDigit(input[pos + 1]))
+            {
+                pos = SkipDigits(input, pos + 2);
+            }
+
+            // Advance past [Ee][+-]?[0-9]+
+            if (pos + 1 < input.Length && (input[pos] == 'e' || input[pos] == 'E'))
+            {
+                int i = pos + 1;
+                if (input[i] == '+' || input[i] == '-')
+                {
+                    ++i;
+                }
+                if (i < input.Length && char.IsAsciiDigit(input[i]))
+                {
+                    pos = SkipDigits(input, i + 1);
+                }
+            }
+            return pos;
+        }
+
+        static (SymbolId, int) TryMatchSymbol(char ch, char next)
         {
             switch (ch)
             {
-                case '+': return SymbolId.Plus;
-                case '-': return SymbolId.Minus;
-                case '*': return SymbolId.Multiply;
-                case '/': return SymbolId.Divide;
-                case '%': return SymbolId.Percent;
-                case '^': return SymbolId.Caret;
-                case '(': return SymbolId.LeftParen;
-                case ')': return SymbolId.RightParen;
-                case ',': return SymbolId.Comma;
-                case '=': return SymbolId.Equals;
-                case '|': return SymbolId.BoolOr;
-                case '&': return SymbolId.BoolAnd;
-                case '!': return ch2 == '=' ? SymbolId.NotEqual : SymbolId.BoolNot;
-                case '<': return ch2 == '=' ? SymbolId.LessThanOrEqual : SymbolId.LessThan;
-                case '>': return ch2 == '=' ? SymbolId.GreaterThanOrEqual : SymbolId.GreaterThan;
-                case '?': return SymbolId.QuestionMark;
-                case ':': return SymbolId.Colon;
-                default: return SymbolId.None;
+                case '+': return (SymbolId.Plus, 1);
+                case '-': return (SymbolId.Minus, 1);
+                case '*': return (SymbolId.Multiply, 1);
+                case '/': return (SymbolId.Divide, 1);
+                case '%': return (SymbolId.Percent, 1);
+                case '^': return (SymbolId.Caret, 1);
+                case '(': return (SymbolId.LeftParen, 1);
+                case ')': return (SymbolId.RightParen, 1);
+                case ',': return (SymbolId.Comma, 1);
+                case '=': return (SymbolId.Equals, 1);
+                case '|': return next == '|' ? (SymbolId.BoolOr, 2) : (SymbolId.None, 0);
+                case '&': return next == '&' ? (SymbolId.BoolAnd, 2) : (SymbolId.None, 0);
+                case '!': return next == '=' ? (SymbolId.NotEqual, 2) : (SymbolId.BoolNot, 1);
+                case '<': return next == '=' ? (SymbolId.LessThanOrEqual, 2) : (SymbolId.LessThan, 1);
+                case '>': return next == '=' ? (SymbolId.GreaterThanOrEqual, 2) : (SymbolId.GreaterThan, 1);
+                case '?': return (SymbolId.QuestionMark, 1);
+                case ':': return (SymbolId.Colon, 1);
             }
+            return (SymbolId.None, 0);
         }
     }
 }
