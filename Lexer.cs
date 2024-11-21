@@ -18,6 +18,7 @@ namespace GraphEq
         Minus,
         Multiply,
         Divide,
+        Percent,
         Caret,
         LeftParen,
         RightParen,
@@ -82,7 +83,7 @@ namespace GraphEq
 
         const string m_numberRegex = @"[0-9]*\.?[0-9]+(?:[Ee][+-]?[0-9]+)?";
         const string m_identifierRegex = @"[A-Za-z_][A-Za-z_0-9]*";
-        const string m_symbolRegex = @"[+\-*/^(),=?:]|[!<>]=?|\|\||&&";
+        const string m_symbolRegex = @"[+\-*/%^(),=?:]|[!<>]=?|\|\||&&";
 
         // Regular expression that matches one token.
         // Each capture group cooresponds to a token type.
@@ -169,6 +170,7 @@ namespace GraphEq
                 case '-': return SymbolId.Minus;
                 case '*': return SymbolId.Multiply;
                 case '/': return SymbolId.Divide;
+                case '%': return SymbolId.Percent;
                 case '^': return SymbolId.Caret;
                 case '(': return SymbolId.LeftParen;
                 case ')': return SymbolId.RightParen;

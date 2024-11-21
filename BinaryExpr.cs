@@ -94,6 +94,11 @@ namespace GraphEq
                 Precedence.MulDiv,
                 (double a, double b) => a / b
                 ) },
+            { SymbolId.Percent, new BinaryOp(
+                " %   Modulo",
+                Precedence.MulDiv,
+                (double a, double b) => a % b
+                ) },
             { SymbolId.Caret, new BinaryOp(
                 " ^   Power",
                 Precedence.Power,
