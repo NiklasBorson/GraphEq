@@ -16,83 +16,67 @@ namespace GraphEq
         Point m_origin;
         Point[] m_figurePoints; // buffer for points in the current figure
 
-        public static void Draw(
-            CanvasDrawingSession drawingSession,
-            ICanvasResourceCreator resourceCreator,
-            Expr expr,
-            float scale,
-            Vector2 origin,
-            Vector2 canvasSize,
-            Windows.UI.Color color
-            )
+        public CurveBuilder()
         {
-            using (var builder = new CurveBuilder(resourceCreator, expr, scale, origin))
+        }
+
+        public CanvasGeometry CreateGeometry(ICanvasResourceCreator resourceCreator, Expr expr, float scale, Vector2 origin, Vector2 canvasSize)
+        {
+            using (m_pathBuilder = new CanvasPathBuilder(resourceCreator))
             {
-                using (var geometry = builder.CreateGeometry(canvasSize))
+                m_expr = expr;
+                m_scale = scale;
+                m_inverseScale = 1.0 / m_scale;
+                m_origin = origin.ToPoint();
+
+                // Ensure we have a buffer big enough for the maximum number of points.
+                int maxPoints = (int)double.Ceiling(canvasSize.X) + 1;
+                if (m_figurePoints == null || m_figurePoints.Length < maxPoints)
                 {
-                    drawingSession.DrawGeometry(geometry, new Vector2(), color, 2.0f);
+                    m_figurePoints = new Point[maxPoints];
                 }
-            }
-        }
+                int pointCount = 0;
 
-        public CurveBuilder(ICanvasResourceCreator resourceCreator, Expr expr, float scale, Vector2 origin)
-        {
-            m_pathBuilder = new CanvasPathBuilder(resourceCreator);
-            m_expr = expr;
-            m_scale = scale;
-            m_inverseScale = 1.0 / m_scale;
-            m_origin = origin.ToPoint();
-        }
-
-        public CanvasGeometry CreateGeometry(Vector2 canvasSize)
-        {
-            // Ensure we have a buffer big enough for the maximum number of points.
-            int maxPoints = (int)double.Ceiling(canvasSize.X) + 1;
-            if (m_figurePoints == null || m_figurePoints.Length < maxPoints)
-            {
-                m_figurePoints = new Point[maxPoints];
-            }
-            int pointCount = 0;
-
-            // Iterate over integral X coordinates from 0 through the width.
-            for (int i = 0; i < maxPoints; i++)
-            {
-                double x = i;
-                double y = GetY(x);
-                bool isVisible = y >= 0 && y <= canvasSize.Y;
-
-                if (pointCount != 0)
+                // Iterate over integral X coordinates from 0 through the width.
+                for (int i = 0; i < maxPoints; i++)
                 {
-                    // End the current figure if the point is off screen or the curve is not continuous.
-                    var last = m_figurePoints[pointCount - 1];
-                    bool isJoined = double.IsRealNumber(y) && IsJoined(last.X, last.Y, x, y);
-                    if (!isVisible || !isJoined)
-                    {
-                        if (isJoined)
-                        {
-                            // Include this point, so the curve doesn't stop before the edge of the window.
-                            m_figurePoints[pointCount++] = new Point(x, y);
-                        }
+                    double x = i;
+                    double y = GetY(x);
+                    bool isVisible = y >= 0 && y <= canvasSize.Y;
 
-                        // Add the current figure and begin a new one.
-                        AddFigure(m_figurePoints.AsSpan(0, pointCount), canvasSize);
-                        pointCount = 0;
+                    if (pointCount != 0)
+                    {
+                        // End the current figure if the point is off screen or the curve is not continuous.
+                        var last = m_figurePoints[pointCount - 1];
+                        bool isJoined = double.IsRealNumber(y) && IsJoined(last.X, last.Y, x, y);
+                        if (!isVisible || !isJoined)
+                        {
+                            if (isJoined)
+                            {
+                                // Include this point, so the curve doesn't stop before the edge of the window.
+                                m_figurePoints[pointCount++] = new Point(x, y);
+                            }
+
+                            // Add the current figure and begin a new one.
+                            AddFigure(m_figurePoints.AsSpan(0, pointCount), canvasSize);
+                            pointCount = 0;
+                        }
+                    }
+
+                    // Add the point to the current figure if it's visible.
+                    if (isVisible)
+                    {
+                        m_figurePoints[pointCount++] = new Point(x, y);
                     }
                 }
 
-                // Add the point to the current figure if it's visible.
-                if (isVisible)
+                if (pointCount != 0)
                 {
-                    m_figurePoints[pointCount++] = new Point(x, y);
+                    AddFigure(m_figurePoints.AsSpan(0, pointCount), canvasSize);
                 }
-            }
 
-            if (pointCount != 0)
-            {
-                AddFigure(m_figurePoints.AsSpan(0, pointCount), canvasSize);
+                return CanvasGeometry.CreatePath(m_pathBuilder);
             }
-
-            return CanvasGeometry.CreatePath(m_pathBuilder);
         }
 
         void AddFigure(Span<Point> points, Vector2 canvasSize)

@@ -63,6 +63,8 @@ namespace GraphEq
             WordWrapping = CanvasWordWrapping.Wrap
         };
 
+        CurveBuilder m_curveBuilder = new CurveBuilder();
+
         // Device-dependent resources.
         AxisRenderer m_axisRenderer;
 
@@ -163,15 +165,16 @@ namespace GraphEq
         {
             if (expr != null)
             {
-                CurveBuilder.Draw(
-                    drawingSession,
+                using (var geometry = m_curveBuilder.CreateGeometry(
                     Canvas,
                     expr,
                     m_scale,
                     PixelOrigin,
-                    CanvasSize,
-                    color
-                    );
+                    CanvasSize
+                    ))
+                {
+                    drawingSession.DrawGeometry(geometry, new Vector2(), color, 2.0f);
+                }
             }
         }
 
@@ -181,6 +184,13 @@ namespace GraphEq
             {
                 var b = new StringBuilder();
                 b.Append(
+                    "An expression may use any of the operators and functions listed " +
+                    "below, as well as user-defined functions in the My Functions tab. " +
+                    "Any expression may be followed by a where clause as in the " +
+                    "following example:\n" +
+                    "\n" +
+                    "    (x + 1) / x, where x > 0\n" +
+                    "\n" +
                     "Unary operators:\n" +
                     " -   Negative\n" +
                     " !   Logical NOT\n" +
