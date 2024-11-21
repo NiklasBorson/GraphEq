@@ -1,5 +1,6 @@
 ﻿namespace GraphEq
 {
+    // Represents expression of the form: condition ? first : second.
     sealed class TernaryExpr : Expr
     {
         Expr m_condition;
@@ -13,17 +14,9 @@
             m_second = second;
         }
 
-        public override double Eval(double[] args)
-        {
-            if (ToBool(m_condition.Eval(args)))
-            {
-                return m_first.Eval(args);
-            }
-            else
-            {
-                return m_second.Eval(args);
-            }
-        }
+        public override double Eval(double[] args) => ToBool(m_condition.Eval(args)) ? 
+            m_first.Eval(args) : 
+            m_second.Eval(args);
 
         public override bool IsConstant =>
             m_condition.IsConstant &&

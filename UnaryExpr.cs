@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace GraphEq
+﻿namespace GraphEq
 {
     sealed class UnaryExpr : Expr
     {

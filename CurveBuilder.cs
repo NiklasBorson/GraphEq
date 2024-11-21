@@ -2,7 +2,6 @@
 using System.Numerics;
 using Microsoft.Graphics.Canvas;
 using Microsoft.Graphics.Canvas.Geometry;
-using Microsoft.UI.Xaml.Input;
 using Windows.Foundation;
 
 namespace GraphEq

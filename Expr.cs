@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace GraphEq
+﻿namespace GraphEq
 {
     /// <summary>
     /// Abstract base class for all expressions.

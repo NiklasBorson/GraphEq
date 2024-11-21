@@ -1,5 +1,4 @@
-﻿using Microsoft.UI.Xaml.Input;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace GraphEq
 {
