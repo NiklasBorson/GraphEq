@@ -30,6 +30,7 @@
             Grid.RowSpan="3"
             Grid.ColumnSpan="4"
             CreateResources="CanvasControl_CreateResources" 
+            SizeChanged="Canvas_SizeChanged"
             Draw="CanvasControl_Draw" 
             ManipulationMode="Scale,TranslateX,TranslateY" 
             ManipulationDelta="CanvasControl_ManipulationDelta"

@@ -58,21 +58,13 @@ namespace GraphEq
         public string TokenString => m_input.Substring(m_matchPos, m_matchLength);
         public ReadOnlySpan<char> TokenSpan => m_input.AsSpan().Slice(m_matchPos, m_matchLength);
 
-        // Input string property.
-        public string InputString
+        // Sets the input and advances to the first token.
+        public void SetInput(string input, int startPos)
         {
-            get
-            {
-                return m_input;
-            }
-
-            set
-            {
-                m_input = value;
-                m_matchPos = 0;
-                m_matchLength = 0;
-                Advance();
-            }
+            m_input = input;
+            m_matchPos = startPos;
+            m_matchLength = 0;
+            Advance();
         }
 
         // Advance to the first or next token in the input string.
@@ -84,7 +76,7 @@ namespace GraphEq
             m_value = double.NaN;
 
             // Advance to the next non-whitespace character after the current match.
-            m_matchPos = SkipWhiteSpace(m_input, m_matchPos + m_matchLength);
+            m_matchPos = SkipSpaces(m_input, m_matchPos + m_matchLength);
             m_matchLength = 0;
 
             if (m_matchPos == m_input.Length)
@@ -119,20 +111,29 @@ namespace GraphEq
                 var (id, length) = TryMatchSymbol(ch, next);
                 if (length > 0)
                 {
+                    // Symbol token
                     m_matchLength = length;
                     m_symbolId = id;
                     m_tokenType = TokenType.Symbol;
                 }
+                else if (ch == '\r' || ch == '\n' || ch == ';')
+                {
+                    // End of line or comment to end of line
+                    m_tokenType = TokenType.None;
+                }
                 else
                 {
+                    // Invalid token
                     m_tokenType = TokenType.Error;
                 }
             }
         }
 
-        static int SkipWhiteSpace(string input, int pos)
+        static bool IsSpaceOrTab(char ch) => ch == ' ' || ch == '\t';
+
+        static int SkipSpaces(string input, int pos)
         {
-            while (pos < input.Length && char.IsWhiteSpace(input[pos]))
+            while (pos < input.Length && IsSpaceOrTab(input[pos]))
             {
                 ++pos;
             }

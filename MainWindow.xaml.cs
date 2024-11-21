@@ -30,6 +30,7 @@ namespace GraphEq
 
         // The origin is stored relative to the canvas size.
         Vector2 m_relativeOrigin = new Vector2(0.5f, 0.5f);
+        Vector2 m_canvasSize;
 
         // Parser and expression state.
         struct Formula
@@ -42,13 +43,28 @@ namespace GraphEq
         string[] m_varNames = new string[] { "x" };
         Formula m_formula;
         Formula m_formula2;
+        string m_userFunctionErrorHeading = null;
         string m_userFunctionsErrorMessage = null;
         bool m_haveUserFunctionsChanged = false;
 
+        // Text formats for error text (not device-dependent).
+        CanvasTextFormat m_errorHeadingFormat = new CanvasTextFormat
+        {
+            FontSize = 16,
+            FontFamily = "Segoe UI",
+            FontWeight = new FontWeight(700),
+            WordWrapping = CanvasWordWrapping.Wrap
+        };
+        CanvasTextFormat m_errorTextFormat = new CanvasTextFormat
+        {
+            FontSize = 16,
+            FontFamily = "Segoe UI",
+            FontWeight = new FontWeight(400),
+            WordWrapping = CanvasWordWrapping.Wrap
+        };
+
         // Device-dependent resources.
         AxisRenderer m_axisRenderer;
-        CanvasTextFormat m_errorHeadingFormat;
-        CanvasTextFormat m_errorTextFormat;
 
         public MainWindow()
         {
@@ -85,31 +101,17 @@ namespace GraphEq
             }
         }
 
-        private CanvasTextFormat MakeErrorTextFormat(ushort fontWeight)
-        {
-            var textFormat = new CanvasTextFormat();
-            textFormat.FontSize = 16;
-            textFormat.FontFamily = "Segoe UI";
-            textFormat.FontWeight = new FontWeight(fontWeight);
-            return textFormat;
-        }
-
         private void CanvasControl_CreateResources(CanvasControl sender, Microsoft.Graphics.Canvas.UI.CanvasCreateResourcesEventArgs args)
         {
             m_axisRenderer?.Dispose();
             m_axisRenderer = new AxisRenderer(sender);
-
-            m_errorHeadingFormat?.Dispose();
-            m_errorHeadingFormat = MakeErrorTextFormat(700);
-
-            m_errorTextFormat?.Dispose();
-            m_errorTextFormat = MakeErrorTextFormat(400);
         }
 
         float DrawErrorText(CanvasDrawingSession drawingSession, float y, string message, CanvasTextFormat textFormat)
         {
-            const float margin = 10;
-            float formatWidth = (float)Canvas.ActualWidth - (margin * 2);
+            const float margin = 20;
+            const float minWidth = 80;
+            float formatWidth = float.Max(minWidth, CanvasSize.X - (margin * 2));
 
             using (var textLayout = new CanvasTextLayout(Canvas, message, textFormat, formatWidth, 0))
             {
@@ -125,10 +127,10 @@ namespace GraphEq
             if (HaveError)
             {
                 const float paraGap = 10;
-                float y = 80;
+                float y = 100;
                 if (m_userFunctionsErrorMessage != null)
                 {
-                    y += DrawErrorText(args.DrawingSession, y, "Error in user function", m_errorHeadingFormat);
+                    y += DrawErrorText(args.DrawingSession, y, m_userFunctionErrorHeading, m_errorHeadingFormat);
                     y += DrawErrorText(args.DrawingSession, y, m_userFunctionsErrorMessage, m_errorTextFormat);
                     y += paraGap;
                 }
@@ -256,18 +258,27 @@ namespace GraphEq
             }
         }
 
-        void SetUserFunctionsError(string errorMessage)
+        void SetUserFunctionsError(string errorHeading, string errorMessage)
         {
-            if (errorMessage != m_userFunctionsErrorMessage)
+            if (errorHeading != m_userFunctionErrorHeading ||
+                errorMessage != m_userFunctionsErrorMessage)
             {
+                m_userFunctionErrorHeading = errorHeading;
                 m_userFunctionsErrorMessage = errorMessage;
 
-                if (errorMessage != null)
-                {
-                    m_formula.m_errorMessage = null;
-                    m_formula2.m_errorMessage = null;
-                }
+                m_formula.m_errorMessage = null;
+                m_formula2.m_errorMessage = null;
 
+                this.Canvas.Invalidate();
+            }
+        }
+
+        void ClearUserFunctionsError()
+        {
+            if (m_userFunctionsErrorMessage != null)
+            {
+                m_userFunctionErrorHeading = null;
+                m_userFunctionsErrorMessage = null;
                 this.Canvas.Invalidate();
             }
         }
@@ -295,7 +306,7 @@ namespace GraphEq
             }
             catch (ParseException x)
             {
-                SetFormulaError($"Error: column {x.InputPos}: {x.Message}", ref formula);
+                SetFormulaError($"Error: column {m_parser.ColumnNumber}: {x.Message}", ref formula);
             }
         }
 
@@ -304,22 +315,22 @@ namespace GraphEq
             try
             {
                 m_userFunctions = m_parser.ParseFunctionDefs(UserFunctionsTextBox.Text);
+                ClearUserFunctionsError();
 
-                SetUserFunctionsError(null);
                 ReparseFormula(FormulaTextBox, ref m_formula);
                 ReparseFormula(Formula2TextBox, ref m_formula2);
             }
             catch (ParseException x)
             {
                 m_userFunctions = null;
-                if (!string.IsNullOrEmpty(m_parser.FunctionName))
-                {
-                    SetUserFunctionsError($"Error in {m_parser.FunctionName}.\nError: line {m_parser.LineNumber}, column {x.InputPos}: {x.Message}");
-                }
-                else
-                {
-                    SetUserFunctionsError($"Error: line {m_parser.LineNumber}: {x.Message}");
-                }
+
+                string heading = string.IsNullOrEmpty(m_parser.FunctionName) ?
+                    "Error in user function" :
+                    $"Error in function: {m_parser.FunctionName}";
+
+                string message = $"Error: line {m_parser.LineNumber} column {m_parser.ColumnNumber}: {x.Message}";
+
+                SetUserFunctionsError(heading, message);
             }
         }
 
@@ -338,6 +349,13 @@ namespace GraphEq
             m_haveUserFunctionsChanged = true;
             ReparseUserFunctions();
         }
+
+        private void Canvas_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            m_canvasSize = new Vector2((float)Canvas.ActualWidth, (float)Canvas.ActualHeight);
+        }
+
+        public Vector2 CanvasSize => m_canvasSize;
 
         public float Scale
         {
@@ -376,9 +394,6 @@ namespace GraphEq
                 RelativeOrigin = value / CanvasSize;
             }
         }
-
-        public Vector2 CanvasSize => new Vector2((float)Canvas.ActualWidth, (float)Canvas.ActualHeight);
-
 
         public string FormulaText
         {
