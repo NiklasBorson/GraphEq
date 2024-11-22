@@ -63,8 +63,6 @@ namespace GraphEq
             WordWrapping = CanvasWordWrapping.Wrap
         };
 
-        CurveBuilder m_curveBuilder = new CurveBuilder();
-
         // Device-dependent resources.
         AxisRenderer m_axisRenderer;
 
@@ -165,7 +163,7 @@ namespace GraphEq
         {
             if (expr != null)
             {
-                using (var geometry = m_curveBuilder.CreateGeometry(
+                using (var geometry = CurveBuilder.CreateGeometry(
                     Canvas,
                     expr,
                     m_scale,

@@ -1,14 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Numerics;
 using Microsoft.Graphics.Canvas;
 using Microsoft.Graphics.Canvas.Geometry;
-using Microsoft.UI.Xaml;
 using Windows.Foundation;
 
 namespace GraphEq
 {
-    internal struct CurveBuilder
+    internal struct CurveBuilder : IDisposable
     {
         CanvasPathBuilder m_pathBuilder;
         Expr m_expr;
@@ -21,30 +19,33 @@ namespace GraphEq
         bool m_havePoint = false;
         bool m_inFigure = false;
 
-        public CurveBuilder()
+        public static CanvasGeometry CreateGeometry(ICanvasResourceCreator resourceCreator, Expr expr, float scale, Vector2 origin, Size canvasSize)
         {
+            using (var builder = new CurveBuilder(resourceCreator, expr, scale, origin, canvasSize))
+            {
+                return builder.CreatePath(canvasSize);
+            }
         }
 
-        public CanvasGeometry CreateGeometry(ICanvasResourceCreator resourceCreator, Expr expr, float scale, Vector2 origin, Size canvasSize)
+        private CurveBuilder(ICanvasResourceCreator resourceCreator, Expr expr, float scale, Vector2 origin, Size canvasSize)
         {
-            using (m_pathBuilder = new CanvasPathBuilder(resourceCreator))
-            {
-                m_expr = expr;
-                m_scale = scale;
-                m_inverseScale = 1.0 / m_scale;
-                m_canvasHeight = canvasSize.Height;
-                m_origin = origin.ToPoint();
-                m_havePoint = false;
-                m_inFigure = false;
+            m_expr = expr;
+            m_scale = scale;
+            m_inverseScale = 1.0 / m_scale;
+            m_canvasHeight = canvasSize.Height;
+            m_origin = origin.ToPoint();
+            m_pathBuilder = new CanvasPathBuilder(resourceCreator);
+        }
 
-                AddIntervalPoints(
-                    new Point(0, GetY(0)),
-                    new Point(canvasSize.Width, GetY(canvasSize.Width))
-                    );
-                EndFigure();
+        private CanvasGeometry CreatePath(Size canvasSize)
+        {
+            AddIntervalPoints(
+                new Point(0, GetY(0)),
+                new Point(canvasSize.Width, GetY(canvasSize.Width))
+                );
+            EndFigure();
 
-                return CanvasGeometry.CreatePath(m_pathBuilder);
-            }
+            return CanvasGeometry.CreatePath(m_pathBuilder);
         }
 
         // Gets the Y coordinate for a given X coordinate in Canvas coordinates.
@@ -199,6 +200,11 @@ namespace GraphEq
                 m_inFigure = false;
             }
             m_havePoint = false;
+        }
+
+        public void Dispose()
+        {
+            m_pathBuilder.Dispose();
         }
     }
 }
