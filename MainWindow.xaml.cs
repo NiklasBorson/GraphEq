@@ -170,7 +170,7 @@ namespace GraphEq
                     expr,
                     m_scale,
                     PixelOrigin,
-                    CanvasSize
+                    CanvasSize.ToSize()
                     ))
                 {
                     drawingSession.DrawGeometry(geometry, new Vector2(), color, 2.0f);
