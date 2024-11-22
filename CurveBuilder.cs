@@ -8,7 +8,7 @@ using Windows.Foundation;
 
 namespace GraphEq
 {
-    internal struct CurveBuilder : IDisposable
+    internal struct CurveBuilder
     {
         CanvasPathBuilder m_pathBuilder;
         Expr m_expr;
@@ -17,7 +17,9 @@ namespace GraphEq
         double m_inverseScale;
         double m_canvasHeight;
         Point m_origin;
-        List<Vector2> m_figurePoints = new List<Vector2>();
+        Vector2 m_lastPoint;
+        bool m_havePoint = false;
+        bool m_inFigure = false;
 
         public CurveBuilder()
         {
@@ -32,7 +34,8 @@ namespace GraphEq
                 m_inverseScale = 1.0 / m_scale;
                 m_canvasHeight = canvasSize.Height;
                 m_origin = origin.ToPoint();
-                m_figurePoints.Clear();
+                m_havePoint = false;
+                m_inFigure = false;
 
                 AddIntervalPoints(
                     new Point(0, GetY(0)),
@@ -74,7 +77,7 @@ namespace GraphEq
             // sample more frequently near a discontinuity like an
             // asymptote.
             const double maxSample = 1.0;
-            const double minSample = 0.0001;
+            const double minSample = 0.001;
 
             // Early out of the X values are very close or very far.
             double dx = right.X - left.X;
@@ -85,7 +88,7 @@ namespace GraphEq
 
             // Determine whether each point is on the curve.
             bool isLeftReal = double.IsRealNumber(left.Y);
-            bool isRightReal = double.IsRealNumber(left.Y);
+            bool isRightReal = double.IsRealNumber(right.Y);
 
             if (isLeftReal && isRightReal)
             {
@@ -162,37 +165,40 @@ namespace GraphEq
 
         void AddPoint(Point pt)
         {
-            float x = (float)pt.X;
-            int c = m_figurePoints.Count;
-            if (c == 0 || m_figurePoints[c - 1].X < x)
+            var point = pt.ToVector2();
+
+            if (m_havePoint)
             {
-                m_figurePoints.Add(new Vector2(x, (float)pt.Y));
+                if (point != m_lastPoint)
+                {
+                    if (m_inFigure)
+                    {
+                        m_pathBuilder.AddLine(m_lastPoint);
+                    }
+                    else
+                    {
+                        m_pathBuilder.BeginFigure(m_lastPoint);
+                        m_inFigure = true;
+                    }
+                    m_lastPoint = point;
+                }
+            }
+            else
+            {
+                m_lastPoint = point;
+                m_havePoint = true;
             }
         }
 
         void EndFigure()
         {
-            int c = m_figurePoints.Count;
-            if (c > 0)
+            if (m_inFigure)
             {
-                if (c > 1)
-                {
-                    m_pathBuilder.BeginFigure(m_figurePoints[0]);
-
-                    for (int i = 1; i < c; i++)
-                    {
-                        m_pathBuilder.AddLine(m_figurePoints[i]);
-                    }
-
-                    m_pathBuilder.EndFigure(CanvasFigureLoop.Open);
-                }
+                m_pathBuilder.AddLine(m_lastPoint);
+                m_pathBuilder.EndFigure(CanvasFigureLoop.Open);
+                m_inFigure = false;
             }
-            m_figurePoints.Clear();
-        }
-
-        public void Dispose()
-        {
-            m_pathBuilder.Dispose();
+            m_havePoint = false;
         }
     }
 }
