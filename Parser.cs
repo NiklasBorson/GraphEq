@@ -7,14 +7,9 @@ namespace GraphEq
 
     class ParseException : Exception
     {
-        public ParseException(Lexer lexer, string message) : base(message)
+        public ParseException(string message) : base(message)
         {
-            InputString = lexer.InputString;
-            InputPos = lexer.TokenPos;
         }
-        public string InputString { get; }
-        public int InputPos { get; }
-
     }
 
     internal class Parser
@@ -23,10 +18,27 @@ namespace GraphEq
         Dictionary<string, UserFunctionDef> m_userFunctions;
         IList<string> m_varNames;
         int m_lineNumber = 0;
+        int m_lineStartPos = 0;
         string m_functionName = null;
 
         public Parser()
         {
+        }
+
+        static int FindNextLine(string input, int linePos)
+        {
+            for (int i = linePos; i < input.Length; i++)
+            {
+                switch (input[i])
+                {
+                    case '\r':
+                        return (i + 1 < input.Length && input[i + 1] == '\n') ? i + 2 : i + 1;
+
+                    case '\n':
+                        return i + 1;
+                }
+            }
+            return input.Length;
         }
 
         public Dictionary<string, UserFunctionDef> ParseFunctionDefs(string input)
@@ -36,17 +48,14 @@ namespace GraphEq
             m_lineNumber = 0;
             m_functionName = null;
 
-            foreach (string line in input.Split('\r'))
+            for (m_lineStartPos = 0; m_lineStartPos < input.Length; m_lineStartPos = FindNextLine(input, m_lexer.TokenPos))
             {
                 ++m_lineNumber;
                 m_functionName = null;
                 m_varNames.Clear();
 
                 // Set the lexer input, trimming any comment.
-                var commentIndex = line.IndexOf(';');
-                m_lexer.InputString = commentIndex < 0 ?
-                    line :
-                    line.Substring(0, commentIndex);
+                m_lexer.SetInput(input, m_lineStartPos);
                 CheckLexerError();
 
                 // Skip blank lilne.
@@ -58,19 +67,19 @@ namespace GraphEq
                 // Parse the function name.
                 if (m_lexer.TokenType != TokenType.Identifier)
                 {
-                    throw new ParseException(m_lexer, "Function name expected.");
+                    throw new ParseException("Function name expected.");
                 }
                 m_functionName = m_lexer.TokenString;
                 if (FunctionDefs.Functions.ContainsKey(m_functionName) || m_userFunctions.ContainsKey(m_functionName))
                 {
-                    throw new ParseException(m_lexer, $"Function {m_functionName} is already defined.");
+                    throw new ParseException($"Function {m_functionName} is already defined.");
                 }
                 Advance();
 
                 // Parse the '('
                 if (m_lexer.TokenSymbol != SymbolId.LeftParen)
                 {
-                    throw new ParseException(m_lexer, "'(' expected.");
+                    throw new ParseException("'(' expected.");
                 }
                 Advance();
 
@@ -85,7 +94,7 @@ namespace GraphEq
                         Advance();
                         if (m_lexer.TokenType != TokenType.Identifier)
                         {
-                            throw new ParseException(m_lexer, "Name expected after ','.");
+                            throw new ParseException("Name expected after ','.");
                         }
                         m_varNames.Add(m_lexer.TokenString);
                         Advance();
@@ -95,14 +104,14 @@ namespace GraphEq
                 // Parse the ')'
                 if (m_lexer.TokenSymbol != SymbolId.RightParen)
                 {
-                    throw new ParseException(m_lexer, "')' expected.");
+                    throw new ParseException("')' expected.");
                 }
                 Advance();
 
                 // Parse the '='
                 if (m_lexer.TokenSymbol != SymbolId.Equals)
                 {
-                    throw new ParseException(m_lexer, "'=' expected.");
+                    throw new ParseException("'=' expected.");
                 }
                 Advance();
 
@@ -117,16 +126,18 @@ namespace GraphEq
         }
 
         public int LineNumber => m_lineNumber;
+        public int ColumnNumber => (m_lexer.TokenPos - m_lineStartPos) + 1;
         public string FunctionName => m_functionName;
 
         public Expr ParseExpression(string input, Dictionary<string, UserFunctionDef> userFunctions, string[] varNames)
         {
-            m_lexer.InputString = input;
+            m_lexer.SetInput(input, 0);
             CheckLexerError();
 
             m_userFunctions = userFunctions;
             m_varNames = varNames;
             m_lineNumber = 0;
+            m_lineStartPos = 0;
             m_functionName = null;
 
             return ParseFullExpression();
@@ -136,7 +147,7 @@ namespace GraphEq
         {
             if (m_lexer.HaveError)
             {
-                throw new ParseException(m_lexer, "Invalid token.");
+                throw new ParseException("Invalid token.");
             }
         }
 
@@ -161,13 +172,13 @@ namespace GraphEq
                 }
                 else
                 {
-                    throw new ParseException(m_lexer, "Expected where after ','.");
+                    throw new ParseException("Expected where after ','.");
                 }
             }
 
             if (m_lexer.TokenType != TokenType.None)
             {
-                throw new ParseException(m_lexer, "Invalid expression.");
+                throw new ParseException("Invalid expression.");
             }
 
             return expr.Simplify();
@@ -189,7 +200,7 @@ namespace GraphEq
                 // Advacne past the ':'.
                 if (m_lexer.TokenSymbol != SymbolId.Colon)
                 {
-                    throw new ParseException(m_lexer, "Expected ':'.");
+                    throw new ParseException("Expected ':'.");
                 }
                 Advance();
 
@@ -208,7 +219,7 @@ namespace GraphEq
         {
             if (!m_lexer.HaveToken)
             {
-                throw new ParseException(m_lexer, "Expected expression.");
+                throw new ParseException("Expected expression.");
             }
 
             var expr = ParseUnaryExpr();
@@ -298,7 +309,7 @@ namespace GraphEq
                     }
 
                     if (m_lexer.TokenSymbol != SymbolId.RightParen)
-                        throw new ParseException(m_lexer, "Expected ).");
+                        throw new ParseException("Expected ).");
 
                     Advance();
 
@@ -321,7 +332,7 @@ namespace GraphEq
                     {
                         return constExpr;
                     }
-                    throw new ParseException(m_lexer, $"Undefined variable or constant: {name}.");
+                    throw new ParseException($"Undefined variable or constant: {name}.");
                 }
             }
             else if (m_lexer.TokenSymbol == SymbolId.LeftParen)
@@ -331,7 +342,7 @@ namespace GraphEq
                 var expr = ParseExpr();
 
                 if (m_lexer.TokenSymbol != SymbolId.RightParen)
-                    throw new ParseException(m_lexer, "Expected ).");
+                    throw new ParseException("Expected ).");
 
                 Advance();
                 return expr;
@@ -340,7 +351,7 @@ namespace GraphEq
             {
                 var op = GetUnaryPrefixOp(m_lexer.TokenSymbol);
                 if (op == null)
-                    throw new ParseException(m_lexer, "Invalid expression.");
+                    throw new ParseException("Invalid expression.");
 
                 Advance();
                 return new UnaryExpr(op, ParseUnaryExpr());
@@ -362,7 +373,7 @@ namespace GraphEq
                 return expr;
             }
 
-            throw new ParseException(m_lexer, $"Unknown function: {name}.");
+            throw new ParseException($"Unknown function: {name}.");
         }
 
         Expr TryCreateIntrinsicFunction(string name, List<Expr> args)
@@ -375,7 +386,7 @@ namespace GraphEq
 
             if (def.ParamCount != args.Count)
             {
-                throw new ParseException(m_lexer, $"{def.ParamCount} arguments expected for {name}().");
+                throw new ParseException($"{def.ParamCount} arguments expected for {name}().");
             }
 
             return new FunctionExpr(def.Op, args);
@@ -391,7 +402,7 @@ namespace GraphEq
 
             if (def.ParamCount != args.Count)
             {
-                throw new ParseException(m_lexer, $"{def.ParamCount} arguments expected for {name}().");
+                throw new ParseException($"{def.ParamCount} arguments expected for {name}().");
             }
 
             return new UserFunctionExpr(def.Body, args);

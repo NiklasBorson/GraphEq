@@ -30,6 +30,7 @@
             Grid.RowSpan="3"
             Grid.ColumnSpan="4"
             CreateResources="CanvasControl_CreateResources" 
+            SizeChanged="Canvas_SizeChanged"
             Draw="CanvasControl_Draw" 
             ManipulationMode="Scale,TranslateX,TranslateY" 
             ManipulationDelta="CanvasControl_ManipulationDelta"
@@ -99,7 +100,8 @@
                 <TabView Grid.Row="1" VerticalAlignment="Stretch" IsAddTabButtonVisible="False">
                     <TabViewItem Header="Help" IsClosable="False">
                         <ScrollViewer>
-                            <TextBox IsReadOnly="True" AcceptsReturn="True" FontFamily="Consolas" Text="{x:Bind HelpText,Mode=OneTime}"/>
+                            <TextBox IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" 
+                                     FontFamily="Consolas" Text="{x:Bind HelpText,Mode=OneTime}"/>
                         </ScrollViewer>
                     </TabViewItem>
                     <TabViewItem Header="My Functions" IsClosable="False">
