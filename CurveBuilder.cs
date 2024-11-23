@@ -19,6 +19,12 @@ namespace GraphEq
         bool m_havePoint = false;
         bool m_inFigure = false;
 
+        // The sample interval depends on factors. We want to
+        // sample more frequently near a discontinuity like an
+        // asymptote.
+        const double MaxSampleInterval = 1.0;
+        const double MinSampleInterval = 0.001;
+
         public static CanvasGeometry CreateGeometry(ICanvasResourceCreator resourceCreator, Expr expr, float scale, Vector2 origin, Size canvasSize)
         {
             using (var builder = new CurveBuilder(resourceCreator, expr, scale, origin, canvasSize))
@@ -39,10 +45,19 @@ namespace GraphEq
 
         private CanvasGeometry CreatePath(Size canvasSize)
         {
-            AddIntervalPoints(
-                new Point(0, GetY(0)),
-                new Point(canvasSize.Width, GetY(canvasSize.Width))
-                );
+            double x = 0;
+            double y = GetY(x);
+
+            for (; x < canvasSize.Width; x += MaxSampleInterval)
+            {
+                double right = double.Min(x + MaxSampleInterval, canvasSize.Width);
+                double rightY = GetY(right);
+
+                AddIntervalPoints(new Point(x, y), new Point(right, rightY));
+
+                y = rightY;
+            }
+
             EndFigure();
 
             return CanvasGeometry.CreatePath(m_pathBuilder);
@@ -74,17 +89,11 @@ namespace GraphEq
         // points between the two specified points.
         bool ShouldSplitInterval(Point left, Point right)
         {
-            // The sample interval depends on factors. We want to
-            // sample more frequently near a discontinuity like an
-            // asymptote.
-            const double maxSample = 1.0;
-            const double minSample = 0.001;
-
             // Early out of the X values are very close or very far.
             double dx = right.X - left.X;
-            if (dx > maxSample || dx <= minSample)
+            if (dx > MaxSampleInterval || dx <= MinSampleInterval)
             {
-                return dx > maxSample;
+                return dx > MaxSampleInterval;
             }
 
             // Determine whether each point is on the curve.
@@ -101,13 +110,13 @@ namespace GraphEq
                 {
                     // Shallow slope: use max sample frequency.
                     // A discontinuity is less likely here.
-                    return dx > maxSample;
+                    return dx > MaxSampleInterval;
                 }
                 else
                 {
                     // Step slope: sample period approaches minSample
                     // as the slop approaches infinity.
-                    double sample = minSample + (maxSample - minSample) / slope;
+                    double sample = MinSampleInterval + (MaxSampleInterval - MinSampleInterval) / slope;
                     return dx > sample;
                 }
             }
@@ -115,13 +124,13 @@ namespace GraphEq
             {
                 // Only one point is real. Use the minimum sample frequency
                 // so we can zero in on the discontinuity.
-                return dx > minSample;
+                return dx > MinSampleInterval;
             }
             else
             {
                 // Neither point is real: use the max sample frequency.
                 // A discontinuity is less likely here.
-                return dx > maxSample;
+                return dx > MaxSampleInterval;
             }
         }
 
