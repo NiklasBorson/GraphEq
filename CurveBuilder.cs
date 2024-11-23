@@ -19,11 +19,22 @@ namespace GraphEq
         bool m_havePoint = false;
         bool m_inFigure = false;
 
-        // The sample interval depends on factors. We want to
-        // sample more frequently near a discontinuity like an
-        // asymptote.
+        // We construct the curve by sampling Y values for X coordinates
+        // from the left of the canvas to the right. The distance between
+        // the sampled X coordinates is called the cample interval and
+        // varies depending on the slope and other factors.
         const double MaxSampleInterval = 1.0;
         const double MinSampleInterval = 0.001;
+
+        // The following constants are used for asymptote detection.
+        // When a sampled real point is adjacent to a sampled non-real
+        // point, there is probably an asymptote between the two points.
+        // We deduce the instantaneous slope at the real point by
+        // sampling another point very close to it. If the slope is
+        // very steep then we extend the curve to the top or bottom
+        // of the canvas.
+        const double TinyDx = MinSampleInterval / 100;
+        const double TinyDy = TinyDx * 100;
 
         public static CanvasGeometry CreateGeometry(ICanvasResourceCreator resourceCreator, Expr expr, float scale, Vector2 origin, Size canvasSize)
         {
@@ -89,11 +100,10 @@ namespace GraphEq
         // points between the two specified points.
         bool ShouldSplitInterval(Point left, Point right)
         {
-            // Early out of the X values are very close or very far.
             double dx = right.X - left.X;
-            if (dx > MaxSampleInterval || dx <= MinSampleInterval)
+            if (dx <= MinSampleInterval)
             {
-                return dx > MaxSampleInterval;
+                return false;
             }
 
             // Determine whether each point is on the curve.
@@ -122,8 +132,9 @@ namespace GraphEq
             }
             else if (isLeftReal != isRightReal)
             {
-                // Only one point is real. Use the minimum sample frequency
-                // so we can zero in on the discontinuity.
+                // Only one point is real, so there is a discontinuity somewhere
+                // in this interval. Use the minimum sample interval so we can
+                // zero in on the discontinuity.
                 return dx > MinSampleInterval;
             }
             else
@@ -159,16 +170,76 @@ namespace GraphEq
             }
             else if (isLeftVisible)
             {
+                // This interval includes a transition from a visible point (left)
+                // to an invisible point (right). Add the left point.
                 AddPoint(left);
+
+                if (double.IsRealNumber(right.Y))
+                {
+                    // The right point is real but off-screen.
+                    // Add it because the segment from left to right may be
+                    // partially visible.
+                    AddPoint(right);
+                }
+                else
+                {
+                    // The left point is not real, so there probably an
+                    // asymptote between left and right. Sample a point
+                    // very close to left so we can determine the slope.
+                    double prevY = GetY(left.X - TinyDx);
+                    if (left.Y > prevY + TinyDy)
+                    {
+                        // Sloping steeply down: add a line segment to the
+                        // bottom of the canvas.
+                        AddPoint(new Point(left.X, m_canvasHeight));
+                    }
+                    else if (left.Y < prevY - TinyDy)
+                    {
+                        // Sloping steeply up: add a line segment to the
+                        // top of the canvas.
+                        AddPoint(new Point(left.X, 0));
+                    }
+                }
+
                 EndFigure();
             }
             else if (isRightVisible)
             {
-                EndFigure();
+                // This interval includes a transition from an invisible point (left)
+                // to a visible point (right).
+                if (double.IsRealNumber(left.Y))
+                {
+                    // The left point is real but off-screen.
+                    // Add it because the segment from left to right may be
+                    // partially visible.
+                    AddPoint(left);
+                }
+                else
+                {
+                    // The left point is not real, so there probably an
+                    // asymptote between left and right. Sample a point
+                    // very close to right so we can determine the slope.
+                    double nextY = GetY(right.X + TinyDx);
+                    if (right.Y > nextY + TinyDy)
+                    {
+                        // Sloping steeply down: add a line segment to the
+                        // bottom of the canvas.
+                        AddPoint(new Point(right.X, m_canvasHeight));
+                    }
+                    else if (right.Y < nextY - TinyDy)
+                    {
+                        // Sloping steeply up: add a line segment to the
+                        // top of the canvas.
+                        AddPoint(new Point(right.X, 0));
+                    }
+                }
+
+                // Add the visible right point.
                 AddPoint(right);
             }
             else
             {
+                // Neither point is visible.
                 EndFigure();
             }
         }
