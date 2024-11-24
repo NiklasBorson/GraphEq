@@ -12,8 +12,7 @@
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/> <!-- Formula1 and buttons -->
-            <RowDefinition Height="Auto"/> <!-- Formula2 -->
+            <RowDefinition Height="Auto"/> <!-- Formulas and buttons -->
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
@@ -35,40 +34,34 @@
             ManipulationDelta="CanvasControl_ManipulationDelta"
             PointerWheelChanged="CanvasControl_PointerWheelChanged"/>
 
-        <!-- Nested grid for the formulas is in row 0, column 0 -->
-        <Grid Margin="5">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="5"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
+        <!-- Stack of formulas is in row 0, column 0 -->
+        <ItemsControl ItemsSource="{x:Bind Formulas}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <ItemsStackPanel/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="local:FormulaViewModel">
+                    <StackPanel Orientation="Horizontal" Margin="5,5,0,0">
+                        <TextBlock Text="f(x) = " FontWeight="Bold" FontStyle="Italic" VerticalAlignment="Center">
+                            <TextBlock.Foreground>
+                                <SolidColorBrush Color="{x:Bind Color}"/>
+                            </TextBlock.Foreground>
+                        </TextBlock>
+                        <TextBox
+                            Text="{x:Bind Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            Margin="5,0,0,0"
+                            Width="300"
+                            PlaceholderText="Type formula" 
+                            IsSpellCheckEnabled="False"
+                            />
+                    </StackPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
 
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="300"/>
-            </Grid.ColumnDefinitions>
-
-            <!-- Formula label and text box are in row 0, columns 0..1 -->
-            <TextBlock Text="f(x) =" Foreground="DarkRed" FontWeight="Bold" FontStyle="Italic" VerticalAlignment="Center"/>
-            <TextBox 
-                Grid.Column="1" 
-                Text="{x:Bind Formula1.Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                PlaceholderText="Type formula" 
-                IsSpellCheckEnabled="False"
-                />
-
-            <!-- Second formula label and text box are in row 2, columns 0..1 -->
-            <TextBlock Text="f(x) =" Grid.Row="2" Foreground="Blue" FontWeight="Bold" FontStyle="Italic" VerticalAlignment="Center"/>
-            <TextBox 
-                Grid.Row="2" 
-                Grid.Column="1" 
-                Text="{x:Bind Formula2.Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                PlaceholderText="Type formula" 
-                IsSpellCheckEnabled="False"
-                />
-        </Grid>
-
-        <!-- Error messages are in row 2, columns 0..1 -->
+        <!-- Error messages are in row 1, columns 0..1 -->
         <Border Grid.Row="2" Grid.ColumnSpan="2" VerticalAlignment="Top"
                 Margin="10" BorderThickness="2" Padding="8" 
                 BorderBrush="Red" Background="LightPink"
@@ -100,9 +93,9 @@
             <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE8A0;"/>
         </Button>
 
-        <!-- The side panel spans all rows and is in column 2-->
+        <!-- The side panel spans both rows and is in column 2-->
         <Border x:Name="SidePanel"
-                Width="400" Grid.RowSpan="3" Grid.Column="2"
+                Width="400" Grid.RowSpan="2" Grid.Column="2"
                 Background="{ThemeResource ContentDialogBackgroundThemeBrush}" BorderBrush="DarkSlateGray" BorderThickness="2" Padding="3">
             <Border.Resources>
                 <Storyboard x:Name="SidePanelOpenAnimation">

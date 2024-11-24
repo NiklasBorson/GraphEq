@@ -3,10 +3,9 @@ using Microsoft.Graphics.Canvas.UI.Xaml;
 using Microsoft.UI.Xaml.Input;
 using System.Numerics;
 using System.Text;
+using System.Collections.Generic;
 using Microsoft.UI.Windowing;
-using Microsoft.Graphics.Canvas.Text;
 using Microsoft.Graphics.Canvas;
-using Windows.UI.Text;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -21,8 +20,6 @@ namespace GraphEq
         #region Fields
         static readonly Windows.UI.Color BackColor = Windows.UI.Color.FromArgb(255, 220, 220, 220);
         static readonly Windows.UI.Color ErrorMessageColor = Windows.UI.Color.FromArgb(255, 128, 0, 0);
-        static readonly Windows.UI.Color Curve1Color = Windows.UI.Color.FromArgb(255, 255, 0, 0);
-        static readonly Windows.UI.Color Curve2Color = Windows.UI.Color.FromArgb(255, 0, 0, 255);
 
         // Canvas scale factor and origin.
         float m_scale = 50;
@@ -35,26 +32,29 @@ namespace GraphEq
 
         public MainWindow()
         {
-            UserFunctions = new FunctionsViewModel();
-            Formula1 = new FormulaViewModel(UserFunctions);
-            Formula2 = new FormulaViewModel(UserFunctions);
-            this.ErrorList = new ErrorListViewModel(
-                UserFunctions,
-                new FormulaViewModel[] { Formula1, Formula2 }
-                );
+            this.UserFunctions = new FunctionsViewModel();
+            this.Formulas = new FormulaViewModel[]
+            {
+                new FormulaViewModel(UserFunctions, Windows.UI.Color.FromArgb(255, 255, 0, 0)),
+                new FormulaViewModel(UserFunctions, Windows.UI.Color.FromArgb(255, 0, 0, 255))
+            };
 
+            this.ErrorList = new ErrorListViewModel(UserFunctions, Formulas);
             this.AppWindow.TitleBar.IconShowOptions = IconShowOptions.HideIconAndSystemMenu;
+
             this.InitializeComponent();
 
             UserFunctions.PropertyChanged += Functions_PropertyChanged;
-            Formula1.PropertyChanged += Formula_PropertyChanged;
-            Formula2.PropertyChanged += Formula_PropertyChanged;
+
+            foreach (var formula in Formulas)
+            {
+                formula.PropertyChanged += Formula_PropertyChanged;
+            }
         }
 
         #region Properties
         internal FunctionsViewModel UserFunctions { get; }
-        internal FormulaViewModel Formula1 { get; }
-        internal FormulaViewModel Formula2 { get; }
+        internal IList<FormulaViewModel> Formulas { get; }
         internal ErrorListViewModel ErrorList { get; }
 
         public float Scale
@@ -233,23 +233,25 @@ namespace GraphEq
             m_axisRenderer.DrawAxes(args.DrawingSession, sender, m_scale, PixelOrigin);
 
             // Draw the curves for each formula.
-            DrawFormula(args.DrawingSession, Formula1.Expression, Curve1Color);
-            DrawFormula(args.DrawingSession, Formula2.Expression, Curve2Color);
-        }
-
-        void DrawFormula(CanvasDrawingSession drawingSession, Expr expr, Windows.UI.Color color)
-        {
-            if (expr != FormulaViewModel.EmptyExpression)
+            foreach (var formula in Formulas)
             {
-                using (var geometry = CurveBuilder.CreateGeometry(
-                    Canvas,
-                    expr,
-                    m_scale,
-                    PixelOrigin,
-                    m_canvasSize.ToSize()
-                    ))
+                if (formula.Expression != FormulaViewModel.EmptyExpression)
                 {
-                    drawingSession.DrawGeometry(geometry, new Vector2(), color, 2.0f);
+                    using (var geometry = CurveBuilder.CreateGeometry(
+                        Canvas,
+                        formula.Expression,
+                        m_scale,
+                        PixelOrigin,
+                        m_canvasSize.ToSize()
+                        ))
+                    {
+                        args.DrawingSession.DrawGeometry(
+                            geometry, 
+                            new Vector2(), 
+                            formula.Color, 
+                            2.0f
+                            );
+                    }
                 }
             }
         }

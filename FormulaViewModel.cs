@@ -13,7 +13,7 @@ namespace GraphEq
         // Functions that may be referenced in a formula.
         FunctionsViewModel m_userFunctions;
 
-        public FormulaViewModel(FunctionsViewModel userFunctions)
+        public FormulaViewModel(FunctionsViewModel userFunctions, Windows.UI.Color color)
         {
             m_userFunctions = userFunctions;
 
@@ -25,7 +25,12 @@ namespace GraphEq
                     ParseExpression();
                 }
             };
+
+            this.Color = color;
         }
+
+        // Color property.
+        public Windows.UI.Color Color { get; }
 
         // Text property.
         string m_text = string.Empty;

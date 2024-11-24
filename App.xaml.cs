@@ -1,6 +1,7 @@
 ﻿using Microsoft.UI.Xaml;
 using System;
 using System.IO;
+using System.Linq;
 using Windows.Storage;
 
 // To learn more about WinUI, the WinUI project structure,
@@ -37,8 +38,7 @@ namespace GraphEq
         }
 
         const string UserFunctionsFileName = "MyFunctions.txt";
-        const string FormulaSettingsKey = "Formula";
-        const string Formula2SettingsKey = "Formula2";
+        string FormulaSettingsKey(int i) => $"Formula{i + 1}";
         const string ScaleSettingsKey = "Scale";
         const string OriginXSettingsKey = "OriginX";
         const string OriginYSettingsKey = "OriginY";
@@ -59,14 +59,15 @@ namespace GraphEq
 
             // Try getting the formula settings.
             var settings = Windows.Storage.ApplicationData.Current.LocalSettings.Values;
-            object formula;
-            if (settings.TryGetValue(FormulaSettingsKey, out formula))
+
+            var formulas = m_window.Formulas;
+            for (int i = 0; i < formulas.Count; i++)
             {
-                m_window.Formula1.Text = formula.ToString();
-            }
-            if (settings.TryGetValue(Formula2SettingsKey, out formula))
-            {
-                m_window.Formula2.Text = formula.ToString();
+                object value;
+                if (settings.TryGetValue(FormulaSettingsKey(i), out value))
+                {
+                    formulas[i].Text = value.ToString();
+                }
             }
 
             // Try getting the scale and origin.
@@ -85,8 +86,12 @@ namespace GraphEq
         {
             // Save the formulas.
             var settings = Windows.Storage.ApplicationData.Current.LocalSettings.Values;
-            settings[FormulaSettingsKey] = m_window.Formula1.Text;
-            settings[Formula2SettingsKey] = m_window.Formula2.Text;
+
+            var formulas = m_window.Formulas;
+            for (int i = 0; i < formulas.Count; i++)
+            {
+                settings[FormulaSettingsKey(i)] = formulas[i].Text;
+            }
 
             // Save the scale.
             settings[ScaleSettingsKey] = m_window.Scale;
