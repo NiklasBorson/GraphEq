@@ -1,16 +1,15 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace GraphEq
 {
-	record FunctionsError(string FunctionName, string Message);
-
 	class FunctionsViewModel : INotifyPropertyChanged
 	{
         public static readonly Dictionary<string, UserFunctionDef> EmptyFunctions = new Dictionary<string, UserFunctionDef>();
-		public static readonly FunctionsError EmptyError = new FunctionsError("", "");
-
+		public static readonly List<ParseError> NoErrors = new List<ParseError>();
+			
 		// Text property.
 		string m_text = string.Empty;
 		public string Text
@@ -28,17 +27,17 @@ namespace GraphEq
             }
 		}
 
-		// Error property.
-        FunctionsError m_error = EmptyError;
-        public FunctionsError Error
+        // Error property.
+        List<ParseError> m_errors = NoErrors;
+        public List<ParseError> Errors
         {
-            get => m_error;
+            get => m_errors;
 
             private set
             {
-                if (value != m_error)
+				if (!m_errors.SequenceEqual(value))
                 {
-                    m_error = value;
+                    m_errors = value;
                     OnPropertyChanged();
                 }
             }
@@ -58,27 +57,17 @@ namespace GraphEq
         }
 
 		// Called when Text changes to parse the parse the text and set
-		// the Functions and Error property.
+		// the Functions and Errors properties.
 		void ParseFunctions()
 		{
-			var parser = new Parser();
+			var functions = new Dictionary<string, UserFunctionDef>();
+			var errors = Parser.ParseFunctionDefs(Text, functions);
 
-			try
-			{
-                this.Functions = parser.ParseFunctionDefs(Text);
-                this.Error = EmptyError;
-			}
-			catch (ParseException e)
-			{
-				this.Functions = EmptyFunctions;
-				this.Error = new FunctionsError(
-					parser.FunctionName,
-                    $"Error: line {parser.LineNumber} column {parser.ColumnNumber}: {e.Message}"
-                    );
-            }
+			this.Errors = errors.Count == 0 ? NoErrors : errors;
+			this.Functions = functions;
         }
 
-		void OnPropertyChanged([CallerMemberName] string name = "")
+        void OnPropertyChanged([CallerMemberName] string name = "")
 		{
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }

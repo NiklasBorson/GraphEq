@@ -21,7 +21,7 @@ namespace GraphEq
         #region Fields
         static readonly Windows.UI.Color BackColor = Windows.UI.Color.FromArgb(255, 220, 220, 220);
         static readonly Windows.UI.Color ErrorMessageColor = Windows.UI.Color.FromArgb(255, 128, 0, 0);
-        static readonly Windows.UI.Color CurveColor = Windows.UI.Color.FromArgb(255, 255, 0, 0);
+        static readonly Windows.UI.Color Curve1Color = Windows.UI.Color.FromArgb(255, 255, 0, 0);
         static readonly Windows.UI.Color Curve2Color = Windows.UI.Color.FromArgb(255, 0, 0, 255);
 
         // Canvas scale factor and origin.
@@ -29,54 +29,33 @@ namespace GraphEq
         Vector2 m_relativeOrigin = new Vector2(0.5f, 0.5f);
         Vector2 m_canvasSize;
 
-        // Parser and expression state (initialized by ctor).
-        FunctionsViewModel m_functions;
-        FormulaViewModel m_formula1;
-        FormulaViewModel m_formula2;
-
-        // Text formats for error messages (not device-dependent).
-        CanvasTextFormat m_errorHeadingFormat = new CanvasTextFormat
-        {
-            FontSize = 16,
-            FontFamily = "Segoe UI",
-            FontWeight = new FontWeight(700),
-            WordWrapping = CanvasWordWrapping.Wrap
-        };
-        CanvasTextFormat m_errorTextFormat = new CanvasTextFormat
-        {
-            FontSize = 16,
-            FontFamily = "Segoe UI",
-            FontWeight = new FontWeight(400),
-            WordWrapping = CanvasWordWrapping.Wrap
-        };
-
         // Device-dependent resources.
         AxisRenderer m_axisRenderer;
         #endregion
 
         public MainWindow()
         {
-            m_functions = new FunctionsViewModel();
-            m_formula1 = new FormulaViewModel(m_functions);
-            m_formula2 = new FormulaViewModel(m_functions);
+            UserFunctions = new FunctionsViewModel();
+            Formula1 = new FormulaViewModel(UserFunctions);
+            Formula2 = new FormulaViewModel(UserFunctions);
+            this.ErrorList = new ErrorListViewModel(
+                UserFunctions,
+                new FormulaViewModel[] { Formula1, Formula2 }
+                );
 
             this.AppWindow.TitleBar.IconShowOptions = IconShowOptions.HideIconAndSystemMenu;
             this.InitializeComponent();
 
-            m_functions.PropertyChanged += Functions_PropertyChanged;
-            m_formula1.PropertyChanged += Formula_PropertyChanged;
-            m_formula2.PropertyChanged += Formula_PropertyChanged;
+            UserFunctions.PropertyChanged += Functions_PropertyChanged;
+            Formula1.PropertyChanged += Formula_PropertyChanged;
+            Formula2.PropertyChanged += Formula_PropertyChanged;
         }
 
         #region Properties
-        internal FunctionsViewModel UserFunctions => m_functions;
-        internal FormulaViewModel Formula1 => m_formula1;
-        internal FormulaViewModel Formula2 => m_formula2;
-
-        bool HaveError =>
-            m_functions.Error != FunctionsViewModel.EmptyError ||
-            m_formula1.Error != string.Empty ||
-            m_formula2.Error != string.Empty;
+        internal FunctionsViewModel UserFunctions { get; }
+        internal FormulaViewModel Formula1 { get; }
+        internal FormulaViewModel Formula2 { get; }
+        internal ErrorListViewModel ErrorList { get; }
 
         public float Scale
         {
@@ -198,7 +177,7 @@ namespace GraphEq
         private void Functions_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             // Repaint if the Error property changes.
-            if (e.PropertyName == nameof(FunctionsViewModel.Error))
+            if (e.PropertyName == nameof(FunctionsViewModel.Errors))
             {
                 Canvas.Invalidate();
             }
@@ -216,22 +195,19 @@ namespace GraphEq
 
         private void CanvasControl_ManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
         {
-            if (!HaveError)
-            {
-                var delta = e.Delta;
+            var delta = e.Delta;
 
-                m_scale *= delta.Scale;
-                PixelOrigin += delta.Translation.ToVector2();
+            m_scale *= delta.Scale;
+            PixelOrigin += delta.Translation.ToVector2();
 
-                this.Canvas.Invalidate();
-            }
+            this.Canvas.Invalidate();
         }
 
         private void CanvasControl_PointerWheelChanged(object sender, PointerRoutedEventArgs e)
         {
             var ctrl = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(Windows.System.VirtualKey.Control);
 
-            if (ctrl.HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down) && !HaveError)
+            if (ctrl.HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down))
             {
                 var delta = e.GetCurrentPoint(Canvas).Properties.MouseWheelDelta;
 
@@ -249,61 +225,16 @@ namespace GraphEq
             m_axisRenderer = new AxisRenderer(sender);
         }
 
-        float DrawErrorText(CanvasDrawingSession drawingSession, float y, string message, CanvasTextFormat textFormat)
-        {
-            const float margin = 20;
-            const float minWidth = 80;
-            float formatWidth = float.Max(minWidth, m_canvasSize.X - (margin * 2));
-
-            using (var textLayout = new CanvasTextLayout(Canvas, message, textFormat, formatWidth, 0))
-            {
-                drawingSession.DrawTextLayout(textLayout, margin, y, ErrorMessageColor);
-                return (float)textLayout.LayoutBounds.Height;
-            }
-        }
-
         private void CanvasControl_Draw(CanvasControl sender, CanvasDrawEventArgs args)
         {
             args.DrawingSession.Clear(BackColor);
 
-            if (HaveError)
-            {
-                const float paraGap = 10;
-                float y = 100;
-                if (m_functions.Error != FunctionsViewModel.EmptyError)
-                {
-                    var funcName = m_functions.Error.FunctionName;
-                    string heading = string.IsNullOrEmpty(funcName) ?
-                        "Error in user defined function" :
-                        $"Error in function: {funcName}";
+            // Draw the axes.
+            m_axisRenderer.DrawAxes(args.DrawingSession, sender, m_scale, PixelOrigin);
 
-                    y += DrawErrorText(args.DrawingSession, y, heading, m_errorHeadingFormat);
-                    y += DrawErrorText(args.DrawingSession, y, m_functions.Error.Message, m_errorTextFormat);
-                    y += paraGap;
-                }
-
-                if (!string.IsNullOrEmpty(m_formula1.Error))
-                {
-                    y += DrawErrorText(args.DrawingSession, y, "Error in first formula", m_errorHeadingFormat);
-                    y += DrawErrorText(args.DrawingSession, y, m_formula1.Error, m_errorTextFormat);
-                    y += paraGap;
-                }
-
-                if (!string.IsNullOrEmpty(m_formula2.Error))
-                {
-                    y += DrawErrorText(args.DrawingSession, y, "Error in second formula", m_errorHeadingFormat);
-                    y += DrawErrorText(args.DrawingSession, y, m_formula2.Error, m_errorTextFormat);
-                }
-            }
-            else
-            {
-                // Draw the axes.
-                m_axisRenderer.DrawAxes(args.DrawingSession, sender, m_scale, PixelOrigin);
-
-                // Draw the curves for each formula.
-                DrawFormula(args.DrawingSession, m_formula1.Expression, CurveColor);
-                DrawFormula(args.DrawingSession, m_formula2.Expression, Curve2Color);
-            }
+            // Draw the curves for each formula.
+            DrawFormula(args.DrawingSession, Formula1.Expression, Curve1Color);
+            DrawFormula(args.DrawingSession, Formula2.Expression, Curve2Color);
         }
 
         void DrawFormula(CanvasDrawingSession drawingSession, Expr expr, Windows.UI.Color color)

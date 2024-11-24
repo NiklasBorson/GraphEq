@@ -12,16 +12,15 @@
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/> <!-- Formula1 and buttons -->
+            <RowDefinition Height="Auto"/> <!-- Formula2 -->
             <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/> <!-- Formulas -->
             <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/> <!-- Side panel -->
         </Grid.ColumnDefinitions>
 
         <!-- The canvas spans all rows and columns, filling the entire background -->
@@ -69,19 +68,41 @@
                 />
         </Grid>
 
+        <!-- Error messages are in row 2, columns 0..1 -->
+        <Border Grid.Row="2" Grid.ColumnSpan="2" VerticalAlignment="Top"
+                Margin="10" BorderThickness="2" Padding="8" 
+                BorderBrush="Red" Background="LightPink"
+                Visibility="{x:Bind ErrorList.Visibility, Mode=OneWay}">
+            <ItemsControl ItemsSource="{x:Bind ErrorList.Errors, Mode=OneWay}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <ItemsStackPanel/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="local:ErrorItem">
+                        <StackPanel Orientation="Vertical">
+                            <TextBlock Text="{x:Bind Heading}" FontWeight="Bold"/>
+                            <TextBlock Text="{x:Bind Message}"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Border>
+
         <!-- Center grid button is in row 0, column 1 -->
         <Button Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5" Click="CenterButton_Click" ToolTipService.ToolTip="Center grid.">
             <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE81D;"/>
         </Button>
 
-        <!-- Open panel button in in row 0, column 3 -->
-        <Button Grid.Column="4" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" Click="OpenSidePanel_Click" ToolTipService.ToolTip="Open side panel.">
+        <!-- Open panel button in in row 0, column 2 -->
+        <Button Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" Click="OpenSidePanel_Click" ToolTipService.ToolTip="Open side panel.">
             <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE8A0;"/>
         </Button>
 
-        <!-- The side panel spans all rows and columns but is right-aligned with a fixed width -->
+        <!-- The side panel spans all rows and is in column 2-->
         <Border x:Name="SidePanel"
-                Width="400" Grid.RowSpan="3" Grid.ColumnSpan="4" HorizontalAlignment="Right"
+                Width="400" Grid.RowSpan="3" Grid.Column="2"
                 Background="{ThemeResource ContentDialogBackgroundThemeBrush}" BorderBrush="DarkSlateGray" BorderThickness="2" Padding="3">
             <Border.Resources>
                 <Storyboard x:Name="SidePanelOpenAnimation">
