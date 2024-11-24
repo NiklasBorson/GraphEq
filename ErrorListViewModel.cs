@@ -33,7 +33,7 @@ namespace GraphEq
 
         private void Functions_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(FunctionsViewModel.Error))
+            if (e.PropertyName == nameof(FunctionsViewModel.Errors))
             {
                 Invalidate();
             }
@@ -65,28 +65,34 @@ namespace GraphEq
         {
             var errors = new List<ErrorItem>();
 
-            if (Functions.Error != FunctionsViewModel.EmptyError)
+            foreach (var error in Functions.Errors)
             {
-                var funcName = Functions.Error.FunctionName;
-                string heading = string.IsNullOrEmpty(funcName) ?
+                string heading = string.IsNullOrEmpty(error.FunctionName) ?
                     "Error in user defined function" :
-                    $"Error in function: {funcName}";
-                errors.Add(new ErrorItem(heading, Functions.Error.Message));
+                    $"Error in function: {error.FunctionName}";
+                errors.Add(new ErrorItem(heading, FormatMessage(error)));
             }
 
             for (int i = 0; i < Formulas.Count; i++)
             {
                 var error = Formulas[i].Error;
-                if (!string.IsNullOrEmpty(error))
+                if (error != Parser.NoError)
                 {
                     string heading = $"Error in formula {i + 1}";
-                    errors.Add(new ErrorItem(heading, error));
+                    errors.Add(new ErrorItem(heading, FormatMessage(error)));
                 }
             }
 
             m_isValid = true;
             this.Errors = errors;
             this.Visibility = errors.Count != 0 ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        static string FormatMessage(ParseError error)
+        {
+            return error.LineNumber != 0 ?
+                $"Error: line {error.LineNumber}, column {error.ColumnNumber}: {error.Message}" :
+                $"Error: column {error.ColumnNumber}: {error.Message}";
         }
 
         public List<ErrorItem> Errors

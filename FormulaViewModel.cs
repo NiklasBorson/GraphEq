@@ -61,8 +61,8 @@ namespace GraphEq
         }
 
         // Error property.
-        string m_error = string.Empty;
-        public string Error
+        ParseError m_error = Parser.NoError;
+        public ParseError Error
         {
             get => m_error;
 
@@ -84,24 +84,23 @@ namespace GraphEq
             if (string.IsNullOrWhiteSpace(m_text))
             {
                 this.Expression = EmptyExpression;
-                this.Error = string.Empty;
+                this.Error = Parser.NoError;
                 return;
             }
 
-            var parser = new Parser();
             try
             {
-                this.Expression = parser.ParseExpression(
+                this.Expression = Parser.ParseExpression(
                     m_text,
                     m_userFunctions.Functions,
                     m_varNames
                     );
-                this.Error = string.Empty;
+                this.Error = Parser.NoError;
             }
             catch (ParseException e)
             {
                 this.Expression = EmptyExpression;
-                this.Error = $"Error: column {parser.ColumnNumber}: {e.Message}";
+                this.Error = e.Error;
             }
         }
 

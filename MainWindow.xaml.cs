@@ -177,7 +177,7 @@ namespace GraphEq
         private void Functions_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             // Repaint if the Error property changes.
-            if (e.PropertyName == nameof(FunctionsViewModel.Error))
+            if (e.PropertyName == nameof(FunctionsViewModel.Errors))
             {
                 Canvas.Invalidate();
             }
