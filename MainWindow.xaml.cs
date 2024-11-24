@@ -39,7 +39,6 @@ namespace GraphEq
             public string m_errorMessage;
         }
         Dictionary<string, UserFunctionDef> m_userFunctions = new Dictionary<string, UserFunctionDef>();
-        Parser m_parser = new Parser();
         string[] m_varNames = new string[] { "x" };
         Formula m_formula;
         Formula m_formula2;
@@ -300,12 +299,14 @@ namespace GraphEq
                 return;
             }
 
+            var parser = new Parser();
+
             try
             {
                 string input = textBox.Text;
                 if (!string.IsNullOrWhiteSpace(input))
                 {
-                    SetExpression(m_parser.ParseExpression(input, m_userFunctions, m_varNames), ref formula);
+                    SetExpression(parser.ParseExpression(input, m_userFunctions, m_varNames), ref formula);
                 }
                 else
                 {
@@ -314,15 +315,17 @@ namespace GraphEq
             }
             catch (ParseException x)
             {
-                SetFormulaError($"Error: column {m_parser.ColumnNumber}: {x.Message}", ref formula);
+                SetFormulaError($"Error: column {parser.ColumnNumber}: {x.Message}", ref formula);
             }
         }
 
         void ReparseUserFunctions()
         {
+            var parser = new Parser();
+
             try
             {
-                m_userFunctions = m_parser.ParseFunctionDefs(UserFunctionsTextBox.Text);
+                m_userFunctions = parser.ParseFunctionDefs(UserFunctionsTextBox.Text);
                 ClearUserFunctionsError();
 
                 ReparseFormula(FormulaTextBox, ref m_formula);
@@ -332,11 +335,11 @@ namespace GraphEq
             {
                 m_userFunctions = null;
 
-                string heading = string.IsNullOrEmpty(m_parser.FunctionName) ?
+                string heading = string.IsNullOrEmpty(parser.FunctionName) ?
                     "Error in user function" :
-                    $"Error in function: {m_parser.FunctionName}";
+                    $"Error in function: {parser.FunctionName}";
 
-                string message = $"Error: line {m_parser.LineNumber} column {m_parser.ColumnNumber}: {x.Message}";
+                string message = $"Error: line {parser.LineNumber} column {parser.ColumnNumber}: {x.Message}";
 
                 SetUserFunctionsError(heading, message);
             }
