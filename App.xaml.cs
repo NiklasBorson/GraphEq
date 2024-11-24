@@ -43,6 +43,8 @@ namespace GraphEq
         const string OriginXSettingsKey = "OriginX";
         const string OriginYSettingsKey = "OriginY";
 
+        string m_savedUserFunctions = string.Empty;
+
         async void ReadAppData()
         {
             // Try opening the user functions file.
@@ -51,7 +53,8 @@ namespace GraphEq
             if (file != null)
             {
                 var text = await FileIO.ReadTextAsync(file);
-                m_window.UserFunctions = text;
+                m_savedUserFunctions = text;
+                m_window.UserFunctions.Text = text;
             }
 
             // Try getting the formula settings.
@@ -59,11 +62,11 @@ namespace GraphEq
             object formula;
             if (settings.TryGetValue(FormulaSettingsKey, out formula))
             {
-                m_window.FormulaText = formula.ToString();
+                m_window.Formula1.Text = formula.ToString();
             }
             if (settings.TryGetValue(Formula2SettingsKey, out formula))
             {
-                m_window.Formula2Text = formula.ToString();
+                m_window.Formula2.Text = formula.ToString();
             }
 
             // Try getting the scale and origin.
@@ -82,8 +85,8 @@ namespace GraphEq
         {
             // Save the formulas.
             var settings = Windows.Storage.ApplicationData.Current.LocalSettings.Values;
-            settings[FormulaSettingsKey] = m_window.FormulaText;
-            settings[Formula2SettingsKey] = m_window.Formula2Text;
+            settings[FormulaSettingsKey] = m_window.Formula1.Text;
+            settings[Formula2SettingsKey] = m_window.Formula2.Text;
 
             // Save the scale.
             settings[ScaleSettingsKey] = m_window.Scale;
@@ -94,14 +97,14 @@ namespace GraphEq
             settings[OriginYSettingsKey] = origin.Y;
 
             // Save the user functions only if they've changed.
-            if (m_window.HaveUserFunctionsChanged)
+            if (m_window.UserFunctions.Text != m_savedUserFunctions)
             {
                 var folder = Windows.Storage.ApplicationData.Current.LocalFolder;
                 var filePath = System.IO.Path.Combine(folder.Path, UserFunctionsFileName);
 
                 using (var writer = new StreamWriter(filePath))
                 {
-                    writer.Write(m_window.UserFunctions);
+                    writer.Write(m_window.UserFunctions.Text);
                 }
             }
         }

@@ -12,7 +12,7 @@ namespace GraphEq
         }
     }
 
-    internal class Parser
+    struct Parser
     {
         Lexer m_lexer = new Lexer();
         Dictionary<string, UserFunctionDef> m_userFunctions;

@@ -36,7 +36,7 @@ namespace GraphEq
         Colon
     }
 
-    internal class Lexer
+    struct Lexer
     {
         // Input string and position.
         string m_input = string.Empty;
@@ -57,6 +57,10 @@ namespace GraphEq
         public int TokenPos => m_matchPos;
         public string TokenString => m_input.Substring(m_matchPos, m_matchLength);
         public ReadOnlySpan<char> TokenSpan => m_input.AsSpan().Slice(m_matchPos, m_matchLength);
+
+        public Lexer()
+        {
+        }
 
         // Sets the input and advances to the first token.
         public void SetInput(string input, int startPos)

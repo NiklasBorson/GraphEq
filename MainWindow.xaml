@@ -51,11 +51,22 @@
 
             <!-- Formula label and text box are in row 0, columns 0..1 -->
             <TextBlock Text="f(x) =" Foreground="DarkRed" FontWeight="Bold" FontStyle="Italic" VerticalAlignment="Center"/>
-            <TextBox x:Name="FormulaTextBox" Grid.Column="1" PlaceholderText="Type formula" IsSpellCheckEnabled="False" TextChanged="Formula_TextChanged"/>
+            <TextBox 
+                Grid.Column="1" 
+                Text="{x:Bind Formula1.Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                PlaceholderText="Type formula" 
+                IsSpellCheckEnabled="False"
+                />
 
             <!-- Second formula label and text box are in row 2, columns 0..1 -->
             <TextBlock Text="f(x) =" Grid.Row="2" Foreground="Blue" FontWeight="Bold" FontStyle="Italic" VerticalAlignment="Center"/>
-            <TextBox x:Name="Formula2TextBox" Grid.Row="2" Grid.Column="1" PlaceholderText="Type formula" IsSpellCheckEnabled="False" TextChanged="Formula2_TextChanged"/>
+            <TextBox 
+                Grid.Row="2" 
+                Grid.Column="1" 
+                Text="{x:Bind Formula2.Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                PlaceholderText="Type formula" 
+                IsSpellCheckEnabled="False"
+                />
         </Grid>
 
         <!-- Center grid button is in row 0, column 1 -->
@@ -108,10 +119,10 @@
                         <ScrollViewer VerticalAlignment="Stretch">
                             <TextBox 
                                 x:Name="UserFunctionsTextBox"
+                                Text="{x:Bind UserFunctions.Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                 IsSpellCheckEnabled="False"
                                 AcceptsReturn="True" 
                                 TextWrapping="Wrap"
-                                TextChanged="UserFunctionsTextBox_TextChanged" 
                                 PlaceholderText="; Examples&#10;pow(x,y) = x^y&#10;circle_area(r) = pi * r^2"/>
                         </ScrollViewer>
                     </TabViewItem>
