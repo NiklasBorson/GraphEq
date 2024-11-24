@@ -78,8 +78,6 @@ namespace GraphEq
             m_formula1.Error != string.Empty ||
             m_formula2.Error != string.Empty;
 
-        public Vector2 CanvasSize => m_canvasSize;
-
         public float Scale
         {
             get => m_scale;
@@ -110,11 +108,11 @@ namespace GraphEq
 
         public Vector2 PixelOrigin
         {
-            get => RelativeOrigin * CanvasSize;
+            get => RelativeOrigin * m_canvasSize;
 
             set
             {
-                RelativeOrigin = value / CanvasSize;
+                RelativeOrigin = value / m_canvasSize;
             }
         }
 
@@ -255,7 +253,7 @@ namespace GraphEq
         {
             const float margin = 20;
             const float minWidth = 80;
-            float formatWidth = float.Max(minWidth, CanvasSize.X - (margin * 2));
+            float formatWidth = float.Max(minWidth, m_canvasSize.X - (margin * 2));
 
             using (var textLayout = new CanvasTextLayout(Canvas, message, textFormat, formatWidth, 0))
             {
@@ -317,7 +315,7 @@ namespace GraphEq
                     expr,
                     m_scale,
                     PixelOrigin,
-                    CanvasSize.ToSize()
+                    m_canvasSize.ToSize()
                     ))
                 {
                     drawingSession.DrawGeometry(geometry, new Vector2(), color, 2.0f);
