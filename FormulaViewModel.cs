@@ -1,11 +1,5 @@
-﻿using Microsoft.UI.Xaml.Controls;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
+﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace GraphEq
 {
@@ -41,8 +35,8 @@ namespace GraphEq
                 if (value != m_text)
                 {
                     m_text = value;
-                    OnPropertyChanged();
                     ParseExpression();
+                    OnPropertyChanged();
                 }
             }
         }
@@ -53,7 +47,7 @@ namespace GraphEq
 
             private set
             {
-                if (value.IsEquivalent(m_expression))
+                if (!value.IsEquivalent(m_expression))
                 {
                     m_expression = value;
                     OnPropertyChanged();

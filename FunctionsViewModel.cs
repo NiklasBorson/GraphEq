@@ -28,10 +28,10 @@ namespace GraphEq
 				if (value != m_text)
 				{
 					m_text = value;
-					OnPropertyChanged();
 					ParseUserFunctions();
-				}
-			}
+                    OnPropertyChanged();
+                }
+            }
 		}
 
         public FunctionsError Error
