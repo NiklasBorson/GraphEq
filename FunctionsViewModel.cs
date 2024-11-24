@@ -10,15 +10,9 @@ namespace GraphEq
 	{
         public static readonly Dictionary<string, UserFunctionDef> EmptyFunctions = new Dictionary<string, UserFunctionDef>();
 		public static readonly FunctionsError EmptyError = new FunctionsError("", "");
-       
+
+		// Text property.
 		string m_text = string.Empty;
-        Dictionary<string, UserFunctionDef> m_userFunctions = EmptyFunctions;
-		FunctionsError m_error = EmptyError;
-
-        public FunctionsViewModel()
-		{
-		}
-
 		public string Text
 		{
 			get => m_text;
@@ -28,12 +22,14 @@ namespace GraphEq
 				if (value != m_text)
 				{
 					m_text = value;
-					ParseUserFunctions();
+					ParseFunctions();
                     OnPropertyChanged();
                 }
             }
 		}
 
+		// Error property.
+        FunctionsError m_error = EmptyError;
         public FunctionsError Error
         {
             get => m_error;
@@ -48,56 +44,28 @@ namespace GraphEq
             }
         }
 
+		// Functions property.
+        Dictionary<string, UserFunctionDef> m_userFunctions = EmptyFunctions;
         public Dictionary<string, UserFunctionDef> Functions
 		{
 			get => m_userFunctions;
 
 			private set
 			{
-                if (!IsEquivalent(value, m_userFunctions))
-                {
-                    m_userFunctions = value;
-					OnPropertyChanged();
-                }
+                m_userFunctions = value;
+				OnPropertyChanged();
             }
         }
 
-		static bool IsEquivalent(
-			Dictionary<string, UserFunctionDef> a,
-            Dictionary<string, UserFunctionDef> b
-			)
-		{
-			if (a.Count != b.Count)
-			{
-				return false;
-			}
-
-			foreach (var item in a)
-			{
-				UserFunctionDef funcB;
-				if (!b.TryGetValue(item.Key, out funcB))
-				{
-					return false;
-				}
-
-				if (!item.Value.Body.IsEquivalent(funcB.Body))
-				{
-					return false;
-				}
-			}
-
-			return true;
-		}
-
-		void ParseUserFunctions()
+		// Called when Text changes to parse the parse the text and set
+		// the Functions and Error property.
+		void ParseFunctions()
 		{
 			var parser = new Parser();
 
 			try
 			{
-				var functions = parser.ParseFunctionDefs(Text);
-
-                this.Functions = functions;
+                this.Functions = parser.ParseFunctionDefs(Text);
                 this.Error = EmptyError;
 			}
 			catch (ParseException e)

@@ -310,7 +310,7 @@ namespace GraphEq
 
         void DrawFormula(CanvasDrawingSession drawingSession, Expr expr, Windows.UI.Color color)
         {
-            if (expr != null)
+            if (expr != FormulaViewModel.EmptyExpression)
             {
                 using (var geometry = CurveBuilder.CreateGeometry(
                     Canvas,
