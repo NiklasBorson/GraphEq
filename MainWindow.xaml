@@ -22,17 +22,8 @@
             <ColumnDefinition Width="Auto"/> <!-- Side panel -->
         </Grid.ColumnDefinitions>
 
-        <!-- The canvas spans all rows and columns, filling the entire background -->
-        <canvas:CanvasControl 
-            x:Name="Canvas" 
-            Grid.RowSpan="3"
-            Grid.ColumnSpan="4"
-            CreateResources="CanvasControl_CreateResources" 
-            SizeChanged="Canvas_SizeChanged"
-            Draw="CanvasControl_Draw" 
-            ManipulationMode="Scale,TranslateX,TranslateY" 
-            ManipulationDelta="CanvasControl_ManipulationDelta"
-            PointerWheelChanged="CanvasControl_PointerWheelChanged"/>
+        <!-- The graph spans all rows and columns, filling the entire background -->
+        <local:GraphControl x:Name="Graph" Grid.RowSpan="2" Grid.ColumnSpan="3"/>
 
         <!-- Stack of formulas is in row 0, column 0 -->
         <ItemsControl ItemsSource="{x:Bind Formulas}">

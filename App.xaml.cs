@@ -77,7 +77,7 @@ namespace GraphEq
                 settings.TryGetValue(OriginYSettingsKey, out originY) &&
                 scale is float && originX is float && originY is float)
             {
-                m_window.Scale = (float)scale;
+                m_window.GraphScale = (float)scale;
                 m_window.RelativeOrigin = new System.Numerics.Vector2((float)originX, (float)originY);
             }
         }
@@ -94,7 +94,7 @@ namespace GraphEq
             }
 
             // Save the scale.
-            settings[ScaleSettingsKey] = m_window.Scale;
+            settings[ScaleSettingsKey] = m_window.GraphScale;
 
             // Save the origin.
             var origin = m_window.RelativeOrigin;
