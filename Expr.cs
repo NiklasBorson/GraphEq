@@ -3,7 +3,7 @@
     /// <summary>
     /// Abstract base class for all expressions.
     /// </summary>
-    abstract class Expr
+    public abstract class Expr
     {
         /// <summary>
         /// Evaluates the expression.

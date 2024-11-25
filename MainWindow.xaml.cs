@@ -27,8 +27,6 @@ namespace GraphEq
             this.AppWindow.TitleBar.IconShowOptions = IconShowOptions.HideIconAndSystemMenu;
 
             this.InitializeComponent();
-
-            Graph.Formulas = this.Formulas;
         }
 
         internal FunctionsViewModel UserFunctions { get; }

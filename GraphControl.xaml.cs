@@ -30,7 +30,7 @@ namespace GraphEq
             this.InitializeComponent();
         }
 
-        internal IList<FormulaViewModel> Formulas
+        public IList<FormulaViewModel> Formulas
         {
             get => m_formulas;
 

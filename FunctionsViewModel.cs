@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 
 namespace GraphEq
 {
-	class FunctionsViewModel : INotifyPropertyChanged
+	public class FunctionsViewModel : INotifyPropertyChanged
 	{
         public static readonly Dictionary<string, UserFunctionDef> EmptyFunctions = new Dictionary<string, UserFunctionDef>();
 		public static readonly List<ParseError> NoErrors = new List<ParseError>();

@@ -23,7 +23,7 @@
         </Grid.ColumnDefinitions>
 
         <!-- The graph spans all rows and columns, filling the entire background -->
-        <local:GraphControl x:Name="Graph" Grid.RowSpan="2" Grid.ColumnSpan="3"/>
+        <local:GraphControl x:Name="Graph" Grid.RowSpan="2" Grid.ColumnSpan="3" Formulas="{x:Bind Formulas}"/>
 
         <!-- Stack of formulas is in row 0, column 0 -->
         <ItemsControl ItemsSource="{x:Bind Formulas}">
