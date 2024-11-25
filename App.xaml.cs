@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.Linq;
 using Windows.Storage;
+using WinRT.GraphEqVtableClasses;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -38,10 +39,16 @@ namespace GraphEq
         }
 
         const string UserFunctionsFileName = "MyFunctions.txt";
-        string FormulaSettingsKey(int i) => $"Formula{i + 1}";
-        const string ScaleSettingsKey = "Scale";
-        const string OriginXSettingsKey = "OriginX";
-        const string OriginYSettingsKey = "OriginY";
+
+        static class SettingsKeys
+        {
+            public const string FormulaCount = "FormulaCount";
+            public static string Formula(int i) => $"Formula{i}";
+            public static string FormulaColor(int i) => $"Color{i}";
+            public const string Scale = "Scale";
+            public const string OriginX = "OriginX";
+            public const string OriginY = "OriginY";
+        }
 
         string m_savedUserFunctions = string.Empty;
 
@@ -60,21 +67,33 @@ namespace GraphEq
             // Try getting the formula settings.
             var settings = Windows.Storage.ApplicationData.Current.LocalSettings.Values;
 
-            var formulas = m_window.Formulas;
-            for (int i = 0; i < formulas.Count; i++)
+            object formulaCount;
+            if (settings.TryGetValue(SettingsKeys.FormulaCount, out formulaCount) && formulaCount is int)
             {
-                object value;
-                if (settings.TryGetValue(FormulaSettingsKey(i), out value))
+
+                var count = (int)formulaCount;
+                for (int i = 0; i < count; i++)
                 {
-                    formulas[i].Text = value.ToString();
+                    object text, color;
+                    if (settings.TryGetValue(SettingsKeys.Formula(i), out text) &&
+                        settings.TryGetValue(SettingsKeys.FormulaColor(i), out color) &&
+                        color is uint)
+                    {
+                        m_window.AddFormula(text.ToString(), (uint)color);
+                    }
                 }
+            }
+
+            if (m_window.Formulas.Count == 0)
+            {
+                m_window.AddFormula();
             }
 
             // Try getting the scale and origin.
             object scale, originX, originY;
-            if (settings.TryGetValue(ScaleSettingsKey, out scale) &&
-                settings.TryGetValue(OriginXSettingsKey, out originX) &&
-                settings.TryGetValue(OriginYSettingsKey, out originY) &&
+            if (settings.TryGetValue(SettingsKeys.Scale, out scale) &&
+                settings.TryGetValue(SettingsKeys.OriginX, out originX) &&
+                settings.TryGetValue(SettingsKeys.OriginY, out originY) &&
                 scale is float && originX is float && originY is float)
             {
                 m_window.GraphScale = (float)scale;
@@ -90,16 +109,18 @@ namespace GraphEq
             var formulas = m_window.Formulas;
             for (int i = 0; i < formulas.Count; i++)
             {
-                settings[FormulaSettingsKey(i)] = formulas[i].Text;
+                settings[SettingsKeys.Formula(i)] = formulas[i].Text;
+                settings[SettingsKeys.FormulaColor(i)] = MainWindow.ColorToUint(formulas[i].Color);
             }
+            settings[SettingsKeys.FormulaCount] = formulas.Count;
 
             // Save the scale.
-            settings[ScaleSettingsKey] = m_window.GraphScale;
+            settings[SettingsKeys.Scale] = m_window.GraphScale;
 
             // Save the origin.
             var origin = m_window.RelativeOrigin;
-            settings[OriginXSettingsKey] = origin.X;
-            settings[OriginYSettingsKey] = origin.Y;
+            settings[SettingsKeys.OriginX] = origin.X;
+            settings[SettingsKeys.OriginY] = origin.Y;
 
             // Save the user functions only if they've changed.
             if (m_window.UserFunctions.Text != m_savedUserFunctions)

@@ -3,7 +3,8 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.Graphics.Canvas.UI.Xaml;
 using Microsoft.UI.Xaml.Input;
 using System.Numerics;
-using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using Microsoft.Graphics.Canvas;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -20,7 +21,7 @@ namespace GraphEq
         Vector2 m_canvasSize;
 
         // Content to render.
-        IList<FormulaViewModel> m_formulas = new FormulaViewModel[0];
+        ObservableCollection<FormulaViewModel> m_formulas;
 
         // Device-dependent resources.
         AxisRenderer m_axisRenderer;
@@ -30,17 +31,60 @@ namespace GraphEq
             this.InitializeComponent();
         }
 
-        public IList<FormulaViewModel> Formulas
+        public ObservableCollection<FormulaViewModel> Formulas
         {
             get => m_formulas;
 
             set
             {
+                // Remove event handlers for the old collection.
+                if (m_formulas != null)
+                {
+                    m_formulas.CollectionChanged -= Formulas_CollectionChanged;
+                    foreach (var formula in m_formulas)
+                    {
+                        formula.PropertyChanged -= Formula_PropertyChanged;
+                    }
+                }
+
+                // Set the new collection.
                 m_formulas = value;
-                foreach (var formula in value)
+
+                // Add event handlers for the new collection.
+                m_formulas.CollectionChanged += Formulas_CollectionChanged;
+                foreach (var formula in m_formulas)
                 {
                     formula.PropertyChanged += Formula_PropertyChanged;
                 }
+
+                Canvas.Invalidate();
+            }
+        }
+
+        private void Formulas_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            if (e.OldItems != null)
+            {
+                foreach (var item in e.OldItems)
+                {
+                    ((FormulaViewModel)item).PropertyChanged -= Formula_PropertyChanged;
+                }
+            }
+            if (e.NewItems != null)
+            {
+                foreach (var item in e.NewItems)
+                {
+                    ((FormulaViewModel)item).PropertyChanged += Formula_PropertyChanged;
+                }
+            }
+            Canvas.Invalidate();
+        }
+
+        private void Formula_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            // Repaint only if the Expression property changes.
+            if (e.PropertyName == nameof(FormulaViewModel.Expression))
+            {
                 Canvas.Invalidate();
             }
         }
@@ -88,15 +132,6 @@ namespace GraphEq
             m_canvasSize = new Vector2((float)Canvas.ActualWidth, (float)Canvas.ActualHeight);
         }
 
-        private void Formula_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
-        {
-            // Repaint only if the Expression property changes.
-            if (e.PropertyName == nameof(FormulaViewModel.Expression))
-            {
-                Canvas.Invalidate();
-            }
-        }
-
         private void CanvasControl_ManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
         {
             var delta = e.Delta;
@@ -127,33 +162,40 @@ namespace GraphEq
             m_axisRenderer = new AxisRenderer(sender);
         }
 
-        private void CanvasControl_Draw(CanvasControl sender, CanvasDrawEventArgs args)
+        void CanvasControl_Draw(CanvasControl sender, CanvasDrawEventArgs args)
         {
             args.DrawingSession.Clear(BackColor);
 
             // Draw the axes.
             m_axisRenderer.DrawAxes(args.DrawingSession, sender, m_scale, PixelOrigin);
 
-            // Draw the curves for each formula.
-            foreach (var formula in Formulas)
+            // Draw the formulas.
+            if (m_formulas != null)
             {
-                if (formula.Expression != FormulaViewModel.EmptyExpression)
+                foreach (var formula in m_formulas)
                 {
-                    using (var geometry = CurveBuilder.CreateGeometry(
-                        Canvas,
-                        formula.Expression,
-                        m_scale,
-                        PixelOrigin,
-                        m_canvasSize.ToSize()
-                        ))
-                    {
-                        args.DrawingSession.DrawGeometry(
-                            geometry,
-                            new Vector2(),
-                            formula.Color,
-                            2.0f
-                            );
-                    }
+                    DrawFormula(args.DrawingSession, formula);
+                }
+            }
+        }
+        void DrawFormula(CanvasDrawingSession drawingSession, FormulaViewModel formula)
+        {
+            if (formula.Expression != FormulaViewModel.EmptyExpression)
+            {
+                using (var geometry = CurveBuilder.CreateGeometry(
+                    Canvas,
+                    formula.Expression,
+                    m_scale,
+                    PixelOrigin,
+                    m_canvasSize.ToSize()
+                    ))
+                {
+                    drawingSession.DrawGeometry(
+                        geometry,
+                        new Vector2(),
+                        formula.Color,
+                        2.0f
+                        );
                 }
             }
         }

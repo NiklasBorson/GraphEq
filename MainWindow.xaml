@@ -26,31 +26,39 @@
         <local:GraphControl x:Name="Graph" Grid.RowSpan="2" Grid.ColumnSpan="3" Formulas="{x:Bind Formulas}"/>
 
         <!-- Stack of formulas is in row 0, column 0 -->
-        <ItemsControl ItemsSource="{x:Bind Formulas}">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <ItemsStackPanel/>
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="local:FormulaViewModel">
-                    <StackPanel Orientation="Horizontal" Margin="5,5,0,0">
-                        <TextBlock Text="f(x) = " FontWeight="Bold" FontStyle="Italic" VerticalAlignment="Center">
-                            <TextBlock.Foreground>
-                                <SolidColorBrush Color="{x:Bind Color}"/>
-                            </TextBlock.Foreground>
-                        </TextBlock>
-                        <TextBox
-                            Text="{x:Bind Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                            Margin="5,0,0,0"
-                            Width="300"
-                            PlaceholderText="Type formula" 
-                            IsSpellCheckEnabled="False"
-                            />
-                    </StackPanel>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
+        <StackPanel Orientation="Vertical">
+            <ItemsControl ItemsSource="{x:Bind Formulas}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <ItemsStackPanel/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="local:FormulaViewModel">
+                        <StackPanel Orientation="Horizontal" Margin="5,5,5,0">
+                            <TextBlock Width="50" Text="f(x) = " FontWeight="Bold" FontStyle="Italic" VerticalAlignment="Center" TextAlignment="Right">
+                                <TextBlock.Foreground>
+                                    <SolidColorBrush Color="{x:Bind Color}"/>
+                                </TextBlock.Foreground>
+                            </TextBlock>
+                            <TextBox
+                                Text="{x:Bind Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                Margin="5,0,0,0"
+                                Width="300"
+                                PlaceholderText="Type formula" 
+                                IsSpellCheckEnabled="False"
+                                />
+                            <Button Click="RemoveFormula_Click" VerticalAlignment="Center">
+                                <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE711;" FontSize="12"/>
+                            </Button>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Button x:Name="AddFormulaButton" Click="AddFormula_Click" Margin="60,5,0,0">
+                <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE710;" FontSize="12"/>
+            </Button>
+        </StackPanel>
 
         <!-- Error messages are in row 1, columns 0..1 -->
         <Border Grid.Row="2" Grid.ColumnSpan="2" VerticalAlignment="Top"
