@@ -178,7 +178,7 @@ namespace GraphEq
         }
     }
 
-    record UserFunctionDef(int ParamCount, Expr Body);
+    public record UserFunctionDef(int ParamCount, Expr Body);
 
     record FunctionDef(string Signature, int ParamCount, FunctionExpr.Op Op);
 

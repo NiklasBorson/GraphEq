@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace GraphEq
 {
-    class FormulaViewModel : INotifyPropertyChanged
+    public class FormulaViewModel : INotifyPropertyChanged
     {
         public static readonly Expr EmptyExpression = Constants.NaN;
 

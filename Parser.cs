@@ -3,11 +3,9 @@ using System.Collections.Generic;
 
 namespace GraphEq
 {
-    delegate VariableExpr TryGetVariable(string name);
+    public record ParseError(string FunctionName, int LineNumber, int ColumnNumber, string Message);
 
-    record ParseError(string FunctionName, int LineNumber, int ColumnNumber, string Message);
-
-    class ParseException : Exception
+    public class ParseException : Exception
     {
         public ParseException(Parser parser, string message) : base(message)
         {
@@ -23,7 +21,7 @@ namespace GraphEq
         public ParseError Error => new ParseError(FunctionName, LineNumber, ColumnNumber, Message);
     }
 
-    class Parser
+    public class Parser
     {
         public static readonly ParseError NoError = new ParseError(
             string.Empty,
