@@ -1,0 +1,41 @@
+﻿@h Expression Syntax
+
+An expression may use any of the operators and functions listed below, as well as user-defined functions in the My Functions tab.
+
+@h Boolean values
+
+Some operators take Boolean arguments or return Boolean results (i.e., True or False). Boolean values can be implicitly converted to or from numbers as follows:
+
+@li True converts to 1.
+@li False converts to NaN.
+@li Any nonzero real number converts to True.
+@li NaN, 0, inf, or -inf converts to False.
+
+@h Constants
+
+The following named constants may be used in an expression. Note that all names are case-sensitive:
+
+@inc consts
+
+@h Unary operators
+
+@inc unops
+
+@h Binary operators
+
+@inc binops
+
+@h Ternary operator
+
+@term A ? B : C
+@def If A then return B, else return C.
+
+@h Where clause
+
+Any expression may be followed by a where clause to restrict where the expression applies. If the where clause is false, the expression is not evaluated and NaN/False is returned instead. For example:
+
+@def (x + 1) / x, where x > 0
+
+@h Intrinsic functions
+
+@inc funcs

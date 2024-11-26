@@ -128,7 +128,7 @@
                 <Button HorizontalAlignment="Right" ToolTipService.ToolTip="Close side panel." Click="CloseSidePanel_Click">
                     <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE89F;"/>
                 </Button>
-                <TabView Grid.Row="1" VerticalAlignment="Stretch" IsAddTabButtonVisible="False">
+                <TabView Grid.Row="1" VerticalAlignment="Stretch" IsAddTabButtonVisible="False" SelectionChanged="TabView_SelectionChanged">
                     <TabViewItem Header="My Functions" IsClosable="False">
                         <ScrollViewer VerticalAlignment="Stretch">
                             <TextBox 
@@ -140,10 +140,9 @@
                                 PlaceholderText="; Examples&#10;pow(x,y) = x^y&#10;circle_area(r) = pi * r^2"/>
                         </ScrollViewer>
                     </TabViewItem>
-                    <TabViewItem Header="Help" IsClosable="False">
+                    <TabViewItem x:Name="HelpItem" Header="Help" IsClosable="False">
                         <ScrollViewer>
-                            <TextBox IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" 
-                                     FontFamily="Consolas" Text="{x:Bind HelpText,Mode=OneTime}"/>
+                            <RichTextBlock x:Name="HelpControl" Margin="10"/>
                         </ScrollViewer>
                     </TabViewItem>
                 </TabView>

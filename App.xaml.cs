@@ -1,6 +1,7 @@
 ﻿using Microsoft.UI.Xaml;
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using Windows.Storage;
 
 // To learn more about WinUI, the WinUI project structure,
@@ -50,7 +51,7 @@ namespace GraphEq
 
         string m_savedUserFunctions = string.Empty;
 
-        async void ReadAppData()
+        async Task ReadUserFunctions()
         {
             // Try opening the user functions file.
             var folder = Windows.Storage.ApplicationData.Current.LocalFolder;
@@ -61,14 +62,31 @@ namespace GraphEq
                 m_savedUserFunctions = text;
                 m_window.UserFunctions.Text = text;
             }
+        }
 
-            // Try getting the formula settings.
+        async void ReadAppData()
+        {
+            // Asynchronously read the user functions.
+            var userFunctionsTask = ReadUserFunctions();
+
+            // Try getting the scale and origin.
             var settings = Windows.Storage.ApplicationData.Current.LocalSettings.Values;
+            object scale, originX, originY;
+            if (settings.TryGetValue(SettingsKeys.Scale, out scale) &&
+                settings.TryGetValue(SettingsKeys.OriginX, out originX) &&
+                settings.TryGetValue(SettingsKeys.OriginY, out originY) &&
+                scale is float && originX is float && originY is float)
+            {
+                m_window.GraphScale = (float)scale;
+                m_window.RelativeOrigin = new System.Numerics.Vector2((float)originX, (float)originY);
+            }
+
+            // Wait until user functions are loaded before parsing formulas.
+            await userFunctionsTask;
 
             object formulaCount;
             if (settings.TryGetValue(SettingsKeys.FormulaCount, out formulaCount) && formulaCount is int)
             {
-
                 var count = (int)formulaCount;
                 for (int i = 0; i < count; i++)
                 {
@@ -85,17 +103,6 @@ namespace GraphEq
             if (m_window.Formulas.Count == 0)
             {
                 m_window.AddFormula();
-            }
-
-            // Try getting the scale and origin.
-            object scale, originX, originY;
-            if (settings.TryGetValue(SettingsKeys.Scale, out scale) &&
-                settings.TryGetValue(SettingsKeys.OriginX, out originX) &&
-                settings.TryGetValue(SettingsKeys.OriginY, out originY) &&
-                scale is float && originX is float && originY is float)
-            {
-                m_window.GraphScale = (float)scale;
-                m_window.RelativeOrigin = new System.Numerics.Vector2((float)originX, (float)originY);
             }
         }
 
