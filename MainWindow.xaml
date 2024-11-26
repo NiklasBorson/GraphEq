@@ -25,8 +25,10 @@
         <!-- The graph spans all rows and columns, filling the entire background -->
         <local:GraphControl x:Name="Graph" Grid.RowSpan="2" Grid.ColumnSpan="3" Formulas="{x:Bind Formulas}"/>
 
-        <!-- Stack of formulas is in row 0, column 0 -->
+        <!-- Formulas are in row 0, column 0 -->
         <StackPanel Orientation="Vertical">
+            
+            <!-- Stack of formulas data-bound to the Formulas property -->
             <ItemsControl ItemsSource="{x:Bind Formulas}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -55,6 +57,8 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
+            
+            <!-- Add Formula button -->
             <Button x:Name="AddFormulaButton" Click="AddFormula_Click" Margin="60,5,0,0" ToolTipService.ToolTip="Add formula.">
                 <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE710;" FontSize="12"/>
             </Button>
