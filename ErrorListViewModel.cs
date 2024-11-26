@@ -1,6 +1,7 @@
 ﻿using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -17,7 +18,7 @@ namespace GraphEq
 
         public ErrorListViewModel(
             FunctionsViewModel userFunctions,
-            IList<FormulaViewModel> formulas
+            ObservableCollection<FormulaViewModel> formulas
             )
         {
             Functions = userFunctions;
@@ -25,10 +26,31 @@ namespace GraphEq
 
             Functions.PropertyChanged += Functions_PropertyChanged;
 
+            Formulas.CollectionChanged += Formulas_CollectionChanged;
+
             foreach (var formula in formulas)
             {
                 formula.PropertyChanged += Formula_PropertyChanged;
             }
+        }
+
+        private void Formulas_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            if (e.OldItems != null)
+            {
+                foreach (var item in e.OldItems)
+                {
+                    ((FormulaViewModel)item).PropertyChanged -= Formula_PropertyChanged;
+                }
+            }
+            if (e.NewItems != null)
+            {
+                foreach (var item in e.NewItems)
+                {
+                    ((FormulaViewModel)item).PropertyChanged += Formula_PropertyChanged;
+                }
+            }
+            Invalidate();
         }
 
         private void Functions_PropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -48,7 +70,7 @@ namespace GraphEq
         }
 
         FunctionsViewModel Functions { get; }
-        IList<FormulaViewModel> Formulas { get; }
+        ObservableCollection<FormulaViewModel> Formulas { get; }
 
         void Invalidate()
         {
