@@ -48,14 +48,14 @@
                                 PlaceholderText="Type formula" 
                                 IsSpellCheckEnabled="False"
                                 />
-                            <Button Click="RemoveFormula_Click" VerticalAlignment="Center">
-                                <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE711;" FontSize="12"/>
+                            <Button Click="RemoveFormula_Click" VerticalAlignment="Center" ToolTipService.ToolTip="Remove formula.">
+                                <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE894;" FontSize="12"/>
                             </Button>
                         </StackPanel>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
-            <Button x:Name="AddFormulaButton" Click="AddFormula_Click" Margin="60,5,0,0">
+            <Button x:Name="AddFormulaButton" Click="AddFormula_Click" Margin="60,5,0,0" ToolTipService.ToolTip="Add formula.">
                 <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE710;" FontSize="12"/>
             </Button>
         </StackPanel>
@@ -82,15 +82,18 @@
             </ItemsControl>
         </Border>
 
-        <!-- Center grid button is in row 0, column 1 -->
-        <Button Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5" Click="CenterButton_Click" ToolTipService.ToolTip="Center grid.">
-            <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE81D;"/>
-        </Button>
-
-        <!-- Open panel button in in row 0, column 2 -->
-        <Button Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" Click="OpenSidePanel_Click" ToolTipService.ToolTip="Open side panel.">
-            <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE8A0;"/>
-        </Button>
+        <!-- Toolbar buttons are in row 0, columns 1..2, and right-aligned -->
+        <StackPanel Grid.Column="1" Grid.ColumnSpan="2" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" Orientation="Vertical">
+            <Button Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Top" Click="OpenSidePanel_Click" ToolTipService.ToolTip="Open side panel.">
+                <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE8A0;"/>
+            </Button>
+            <Button Click="CenterButton_Click" ToolTipService.ToolTip="Center grid.">
+                <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE81D;"/>
+            </Button>
+            <Button Click="DefaultScaleButton_Click" ToolTipService.ToolTip="Set default scale.">
+                <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE71F;"/>
+            </Button>
+        </StackPanel>
 
         <!-- The side panel spans both rows and is in column 2-->
         <Border x:Name="SidePanel"

@@ -14,9 +14,10 @@ namespace GraphEq
     public sealed partial class GraphControl : UserControl
     {
         static readonly Windows.UI.Color BackColor = Windows.UI.Color.FromArgb(255, 220, 220, 220);
+        public const float DefaultScale = 50;
 
         // Canvas scale factor and origin.
-        float m_scale = 50;
+        float m_scale = DefaultScale;
         Vector2 m_relativeOrigin = new Vector2(0.5f, 0.5f);
         Vector2 m_canvasSize;
 

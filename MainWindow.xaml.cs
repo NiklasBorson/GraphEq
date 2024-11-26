@@ -138,6 +138,8 @@ namespace GraphEq
             if (i >= 0)
             {
                 Formulas.RemoveAt(i);
+
+                AddFormulaButton.ClearValue(Button.VisibilityProperty);
             }
         }
 
@@ -186,6 +188,11 @@ namespace GraphEq
         private void CenterButton_Click(object sender, RoutedEventArgs e)
         {
             Graph.RelativeOrigin = new Vector2(0.5f, 0.5f);
+        }
+
+        private void DefaultScaleButton_Click(object sender, RoutedEventArgs e)
+        {
+            Graph.GraphScale = GraphControl.DefaultScale;
         }
 
         private void OpenSidePanel_Click(object sender, RoutedEventArgs e)
