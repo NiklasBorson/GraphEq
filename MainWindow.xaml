@@ -21,11 +21,6 @@
             <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="local:FormulaViewModel">
                     <StackPanel Orientation="Horizontal" Margin="5,5,5,0">
-                        <TextBlock Width="50" Text="f(x) = " FontWeight="Bold" FontStyle="Italic" VerticalAlignment="Center" TextAlignment="Right">
-                            <TextBlock.Foreground>
-                                <SolidColorBrush Color="{x:Bind Color}"/>
-                            </TextBlock.Foreground>
-                        </TextBlock>
                         <TextBox
                             Text="{x:Bind Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             Margin="5,0,0,0"

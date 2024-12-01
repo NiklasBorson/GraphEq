@@ -5,14 +5,6 @@ namespace GraphEq
 {
     public class FormulaViewModel : INotifyPropertyChanged
     {
-        public FormulaViewModel(Windows.UI.Color color)
-        {
-            this.Color = color;
-        }
-
-        // Color property.
-        public Windows.UI.Color Color { get; }
-
         // Text property.
         string m_text = string.Empty;
         public string Text
