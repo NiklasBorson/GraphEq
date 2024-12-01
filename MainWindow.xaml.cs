@@ -17,16 +17,12 @@ namespace GraphEq
     {
         public MainWindow()
         {
-            this.UserFunctions = new FunctionsViewModel();
             this.Formulas = new ObservableCollection<FormulaViewModel>();
-            this.ErrorList = new ErrorListViewModel(UserFunctions, Formulas);
             this.AppWindow.TitleBar.IconShowOptions = IconShowOptions.HideIconAndSystemMenu;
 
             this.InitializeComponent();
         }
 
-        internal FunctionsViewModel UserFunctions { get; }
         internal ObservableCollection<FormulaViewModel> Formulas { get; }
-        internal ErrorListViewModel ErrorList { get; }
     }
 }

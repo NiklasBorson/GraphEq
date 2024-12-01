@@ -11,46 +11,31 @@
     Title="Graph Equations">
 
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/> <!-- Formulas and buttons -->
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
-
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto"/> <!-- Formulas -->
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="Auto"/> <!-- Side panel -->
-        </Grid.ColumnDefinitions>
-
-        <!-- Formulas are in row 0, column 0 -->
-        <StackPanel Orientation="Vertical">
-            
-            <!-- Stack of formulas data-bound to the Formulas property -->
-            <ItemsControl ItemsSource="{x:Bind Formulas}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <ItemsStackPanel/>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="local:FormulaViewModel">
-                        <StackPanel Orientation="Horizontal" Margin="5,5,5,0">
-                            <TextBlock Width="50" Text="f(x) = " FontWeight="Bold" FontStyle="Italic" VerticalAlignment="Center" TextAlignment="Right">
-                                <TextBlock.Foreground>
-                                    <SolidColorBrush Color="{x:Bind Color}"/>
-                                </TextBlock.Foreground>
-                            </TextBlock>
-                            <TextBox
-                                Text="{x:Bind Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                Margin="5,0,0,0"
-                                Width="300"
-                                PlaceholderText="Type formula" 
-                                IsSpellCheckEnabled="False"
-                                />
-                        </StackPanel>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </StackPanel>
+        <!-- Stack of formulas data-bound to the Formulas property -->
+        <ItemsControl ItemsSource="{x:Bind Formulas}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <ItemsStackPanel/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="local:FormulaViewModel">
+                    <StackPanel Orientation="Horizontal" Margin="5,5,5,0">
+                        <TextBlock Width="50" Text="f(x) = " FontWeight="Bold" FontStyle="Italic" VerticalAlignment="Center" TextAlignment="Right">
+                            <TextBlock.Foreground>
+                                <SolidColorBrush Color="{x:Bind Color}"/>
+                            </TextBlock.Foreground>
+                        </TextBlock>
+                        <TextBox
+                            Text="{x:Bind Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            Margin="5,0,0,0"
+                            Width="300"
+                            PlaceholderText="Type formula" 
+                            IsSpellCheckEnabled="False"
+                            />
+                    </StackPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
     </Grid>
 </Window>
