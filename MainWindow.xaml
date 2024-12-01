@@ -22,9 +22,6 @@
             <ColumnDefinition Width="Auto"/> <!-- Side panel -->
         </Grid.ColumnDefinitions>
 
-        <!-- The graph spans all rows and columns, filling the entire background -->
-        <local:GraphControl x:Name="Graph" Grid.RowSpan="2" Grid.ColumnSpan="3" Formulas="{x:Bind Formulas}"/>
-
         <!-- Formulas are in row 0, column 0 -->
         <StackPanel Orientation="Vertical">
             
@@ -90,12 +87,6 @@
         <StackPanel Grid.Column="1" Grid.ColumnSpan="2" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" Orientation="Vertical">
             <Button Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Top" Click="OpenSidePanel_Click" ToolTipService.ToolTip="Open side panel.">
                 <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE8A0;"/>
-            </Button>
-            <Button Click="CenterButton_Click" ToolTipService.ToolTip="Center grid.">
-                <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE81D;"/>
-            </Button>
-            <Button Click="DefaultScaleButton_Click" ToolTipService.ToolTip="Set default scale.">
-                <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE71F;"/>
             </Button>
         </StackPanel>
 

@@ -29,18 +29,6 @@ namespace GraphEq
         internal ObservableCollection<FormulaViewModel> Formulas { get; }
         internal ErrorListViewModel ErrorList { get; }
 
-        internal float GraphScale
-        {
-            get => Graph.GraphScale;
-            set { Graph.GraphScale = value; }
-        }
-
-        internal Vector2 RelativeOrigin
-        {
-            get => Graph.RelativeOrigin;
-            set { Graph.RelativeOrigin = value; }
-        }
-
         static readonly uint[] m_formulaColors = new uint[]
         {
             0xFF0000,   // red
@@ -127,16 +115,6 @@ namespace GraphEq
                     AddFormulaButton.Visibility = Visibility.Collapsed;
                 }
             }
-        }
-
-        private void CenterButton_Click(object sender, RoutedEventArgs e)
-        {
-            Graph.RelativeOrigin = new Vector2(0.5f, 0.5f);
-        }
-
-        private void DefaultScaleButton_Click(object sender, RoutedEventArgs e)
-        {
-            Graph.GraphScale = GraphControl.DefaultScale;
         }
 
         private void OpenSidePanel_Click(object sender, RoutedEventArgs e)
