@@ -115,7 +115,7 @@ namespace GraphEq
             }
 
             // Parse the function name.
-            if (m_lexer.TokenType != TokenType.Identifier)
+            if (m_lexer.TokenType != TokenType.Name)
             {
                 throw new ParseException(this, "Function name expected.");
             }
@@ -134,7 +134,7 @@ namespace GraphEq
             Advance();
 
             // Parse the parameter names.
-            if (m_lexer.TokenType == TokenType.Identifier)
+            if (m_lexer.TokenType == TokenType.Name)
             {
                 m_varNames.Add(m_lexer.TokenString);
                 Advance();
@@ -142,7 +142,7 @@ namespace GraphEq
                 while (m_lexer.TokenSymbol == SymbolId.Comma)
                 {
                     Advance();
-                    if (m_lexer.TokenType != TokenType.Identifier)
+                    if (m_lexer.TokenType != TokenType.Name)
                     {
                         throw new ParseException(this, "Name expected after ','.");
                     }
@@ -193,7 +193,7 @@ namespace GraphEq
             if (m_lexer.TokenSymbol == SymbolId.Comma)
             {
                 m_lexer.Advance();
-                if (m_lexer.TokenType == TokenType.Identifier && m_lexer.TokenString == "where")
+                if (m_lexer.MatchName("where"))
                 {
                     m_lexer.Advance();
                     var condition = ParseExpr();
@@ -317,7 +317,7 @@ namespace GraphEq
                 Advance();
                 return expr;
             }
-            else if (m_lexer.TokenType == TokenType.Identifier)
+            else if (m_lexer.TokenType == TokenType.Name)
             {
                 string name = m_lexer.TokenString;
                 Advance();

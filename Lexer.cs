@@ -1,4 +1,5 @@
 ﻿using System;
+using Windows.Media.AppBroadcasting;
 
 namespace GraphEq
 {
@@ -7,7 +8,7 @@ namespace GraphEq
         Error = -1,
         None = 0,
         Number,
-        Identifier,
+        Name,
         Symbol
     }
 
@@ -57,6 +58,12 @@ namespace GraphEq
         public int TokenPos => m_matchPos;
         public string TokenString => m_input.Substring(m_matchPos, m_matchLength);
         public ReadOnlySpan<char> TokenSpan => m_input.AsSpan().Slice(m_matchPos, m_matchLength);
+
+        public bool MatchName(string name)
+        {
+            return TokenType == TokenType.Name && 
+                name.AsSpan().CompareTo(TokenSpan, StringComparison.Ordinal) == 0;
+        }
 
         public Lexer()
         {
@@ -108,7 +115,7 @@ namespace GraphEq
             else if (IsNameChar(ch))
             {
                 m_matchLength = FindNameEnd(m_input, m_matchPos) - m_matchPos;
-                m_tokenType = TokenType.Identifier;
+                m_tokenType = TokenType.Name;
             }
             else
             {
