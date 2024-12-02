@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using Windows.Storage;
+using Windows.UI;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -64,6 +65,23 @@ namespace GraphEq
             }
         }
 
+        static uint ColorToUint(Color color)
+        {
+            return ((uint)(color.R) << 16) |
+                ((uint)(color.G) << 8) |
+                ((uint)color.B);
+        }
+
+        static Color ColorFromUint(uint value)
+        {
+            return Color.FromArgb(
+                0xFF,
+                (byte)(value >> 16),
+                (byte)(value >> 8),
+                (byte)(value)
+            );
+        }
+
         async void ReadAppData()
         {
             // Asynchronously read the user functions.
@@ -95,7 +113,7 @@ namespace GraphEq
                         settings.TryGetValue(SettingsKeys.FormulaColor(i), out color) &&
                         color is uint)
                     {
-                        m_window.AddFormula(text.ToString(), (uint)color);
+                        m_window.AddFormula(text.ToString(), ColorFromUint((uint)color));
                     }
                 }
             }
@@ -115,7 +133,7 @@ namespace GraphEq
             for (int i = 0; i < formulas.Count; i++)
             {
                 settings[SettingsKeys.Formula(i)] = formulas[i].Text;
-                settings[SettingsKeys.FormulaColor(i)] = MainWindow.ColorToUint(formulas[i].Color);
+                settings[SettingsKeys.FormulaColor(i)] = ColorToUint(formulas[i].Color);
             }
             settings[SettingsKeys.FormulaCount] = formulas.Count;
 

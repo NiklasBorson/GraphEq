@@ -1,9 +1,10 @@
-using Microsoft.UI.Xaml;
+using System;
 using System.Numerics;
 using System.Collections.ObjectModel;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Windowing;
-using System;
 using Microsoft.UI.Xaml.Controls;
+using Windows.UI;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -41,35 +42,6 @@ namespace GraphEq
             set { Graph.RelativeOrigin = value; }
         }
 
-        static readonly uint[] m_formulaColors = new uint[]
-        {
-            0xFF0000,   // red
-            0x0023F5,   // blue
-            0x007F00,   // green
-            0xF09B59,   // orange
-            0x732BF5,   // purple
-            0xEA3FF7,   // lavender
-            0x000C7B,   // dark blue
-            0x7E84F7,   // light blue
-        };
-
-        public static uint ColorToUint(Windows.UI.Color color)
-        {
-            return ((uint)(color.R) << 16) |
-                ((uint)(color.G) << 8) |
-                ((uint)color.B);
-        }
-
-        public static Windows.UI.Color ColorFromUint(uint value)
-        {
-            return Windows.UI.Color.FromArgb(
-                0xFF,
-                (byte)(value >> 16),
-                (byte)(value >> 8),
-                (byte)(value)
-            );
-        }
-
         private void AddFormula_Click(object sender, RoutedEventArgs e)
         {
             AddFormula();
@@ -89,14 +61,14 @@ namespace GraphEq
 
         public void AddFormula()
         {
-            var usedColors = new uint[Formulas.Count];
+            var usedColors = new Color[Formulas.Count];
             for (int i = 0; i < usedColors.Length; i++)
             {
-                usedColors[i] = ColorToUint(Formulas[i].Color);
+                usedColors[i] = Formulas[i].Color;
             }
 
-            var newColor = m_formulaColors[0];
-            foreach (var color in m_formulaColors)
+            var newColor = FormulaViewModel.AllColors[0];
+            foreach (var color in FormulaViewModel.AllColors)
             {
                 if (Array.IndexOf(usedColors, color) < 0)
                 {
@@ -108,12 +80,12 @@ namespace GraphEq
             AddFormula(string.Empty, newColor);
         }
 
-        public void AddFormula(string text, uint color)
+        public void AddFormula(string text, Color color)
         {
-            int maxCount = m_formulaColors.Length;
+            int maxCount = FormulaViewModel.AllColors.Length;
             if (Formulas.Count < maxCount)
             {
-                var formula = new FormulaViewModel(UserFunctions, ColorFromUint(color));
+                var formula = new FormulaViewModel(UserFunctions, color);
 
                 if (!string.IsNullOrEmpty(text))
                 {
