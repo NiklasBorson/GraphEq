@@ -14,15 +14,15 @@ acos,Arccosine (inverse cosine) of n.
 atan,Arctangent (inverse tangent) of n.
 atan2,Two-argument arctangent.
 abs,Absolute value of n.
-max,Maximum of a or b.
-min,Minimum of a or b.
-round,Nearest integer to n.
-floor,Nearest integer <= n.
-ceil,Nearest integer >= n.
-trunc,Truncates the franctional part of n (i.e., rounds towards 0).
-clamp,Clamps x to the range [min,max].
-clip,Returns x if x is in the range [min,max], otherwise returns False/NaN.
-in_range,Returns True/1 if x is in the [min,max], otherwise returns False/NaN.
+max,Returns the greater of the two arguments.
+min,Returns the lesser of the two arguments.
+round,Rounds to the nearest integer.
+floor,Rounds down to the nearest integer <= n.
+ceil,Rounds up to the nearest integer >= n.
+trunc,Rounds towards 0, i.e., truncates the fractional part of n.
+clamp,Clamps x to the range [min,max], i.e., returns x if it is in [min,max], min if x < min, or max if x > max.
+clip,Returns x if x is in the range [min,max], otherwise returns NaN.
+in_range,Returns True if x is in the [min,max], otherwise returns False.
 
 unary-,Negative
 unary!,Logical NOT

@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using Windows.UI;
 
 namespace GraphEq
 {
@@ -13,7 +14,7 @@ namespace GraphEq
         // Functions that may be referenced in a formula.
         FunctionsViewModel m_userFunctions;
 
-        public FormulaViewModel(FunctionsViewModel userFunctions, Windows.UI.Color color)
+        public FormulaViewModel(FunctionsViewModel userFunctions, Color color)
         {
             m_userFunctions = userFunctions;
 
@@ -28,6 +29,18 @@ namespace GraphEq
 
             this.Color = color;
         }
+
+        public static readonly Color[] AllColors = new Color[]
+        {
+            Color.FromArgb(0xFF, 0xFF, 0, 0),       // red
+            Color.FromArgb(0xFF, 0x00, 0x23, 0xF5), // blue
+            Color.FromArgb(0xFF, 0x00, 0x7F, 0),    // green
+            Color.FromArgb(0xFF, 0xF0, 0x9B, 0x59), // orange
+            Color.FromArgb(0xFF, 0x73, 0x2B, 0xF5), // purple
+            Color.FromArgb(0xFF, 0xEA, 0x3F, 0xF7), // lavender
+            Color.FromArgb(0xFF, 0x00, 0x0C, 0x7B), // dark blue
+            Color.FromArgb(0xFF, 0x7E, 0x84, 0xF7), // light blue
+        };
 
         // Color property.
         public Windows.UI.Color Color { get; }
