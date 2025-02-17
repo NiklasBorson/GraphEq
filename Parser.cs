@@ -47,7 +47,7 @@ namespace GraphEq
         public int ColumnNumber => (m_lexer.TokenPos - m_lineStartPos) + 1;
         public string FunctionName => m_functionName;
 
-        public static Expr ParseExpression(string input, Dictionary<string, UserFunctionDef> userFunctions, string[] varNames)
+        public static Expr ParseFormula(string input, Dictionary<string, UserFunctionDef> userFunctions, string[] varNames)
         {
             var parser = new Parser(userFunctions, varNames);
             parser.SetInput(input, 0);
@@ -99,6 +99,8 @@ namespace GraphEq
             CheckLexerError();
         }
 
+        // <funcDef> -> <name> <argList> "=" <fullExpr>
+        // <argList> -> "(" ( <name> ( "," <name> )* )? ")"
         void ParseFunctionDef(string input, int lineStartPos)
         {
             m_functionName = null;
@@ -186,6 +188,7 @@ namespace GraphEq
             CheckLexerError();
         }
 
+        // <fullExpr> -> <expr> ( "," "where" <expr> )? <END>
         Expr ParseFullExpression()
         {
             var expr = ParseExpr();
@@ -213,9 +216,10 @@ namespace GraphEq
             return expr.Simplify();
         }
 
+        // <expr> -> <expr2> ( "?" <expr2> ":" <expr> )?
         Expr ParseExpr()
         {
-            var expr = ParseBinaryExpr();
+            var expr = ParseExpr2();
 
             // Is it a ternary expression: expr ? first : second
             if (m_lexer.TokenSymbol == SymbolId.QuestionMark)
@@ -224,7 +228,7 @@ namespace GraphEq
                 Advance();
 
                 // Parse the first subexpression.
-                var first = ParseBinaryExpr();
+                var first = ParseExpr2();
 
                 // Advacne past the ':'.
                 if (m_lexer.TokenSymbol != SymbolId.Colon)
@@ -243,8 +247,8 @@ namespace GraphEq
             return expr;
         }
 
-        // expr -> unary (BinOp expr)*
-        Expr ParseBinaryExpr()
+        // <expr2> -> <unaryExpr> <binarySubexpr>?
+        Expr ParseExpr2()
         {
             if (!m_lexer.HaveToken)
             {
@@ -257,10 +261,11 @@ namespace GraphEq
             if (op == null)
                 return expr;
 
-            return ParseBinaryExpr(expr, op, Precedence.None);
+            return ParseBinarySubexpr(expr, op, Precedence.None);
         }
 
-        Expr ParseBinaryExpr(Expr left, BinaryOp op, Precedence minPrecedence)
+        // <binarySubexpr> -> ( <BinaryOp> <unaryExpr> )*
+        Expr ParseBinarySubexpr(Expr left, BinaryOp op, Precedence minPrecedence)
         {
             while (op != null && op.Precedence >= minPrecedence)
             {
@@ -276,7 +281,7 @@ namespace GraphEq
                 var nextOp = GetBinaryOp(m_lexer.TokenSymbol);
                 while (nextOp != null && nextOp.Precedence > op.Precedence)
                 {
-                    right = ParseBinaryExpr(right, nextOp, nextOp.Precedence);
+                    right = ParseBinarySubexpr(right, nextOp, nextOp.Precedence);
                     nextOp = GetBinaryOp(m_lexer.TokenSymbol);
                 }
 
@@ -304,11 +309,11 @@ namespace GraphEq
             return null;
         }
 
-        // unary -> Number
-        //          Identifier
-        //          Identifier '(' expr ( ',' expr )* ')'
-        //          '(' expr ')'
-        //          '-' unary
+        // <unaryExpr> -> <number>
+        //                <name>
+        //                <name> '(' <expr> ( ',' <expr> )* ')'
+        //                '(' <expr> ')'
+        //                <UnaryOp> <unaryExpr>
         Expr ParseUnaryExpr()
         {
             if (m_lexer.TokenType == TokenType.Number)

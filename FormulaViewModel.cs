@@ -108,7 +108,7 @@ namespace GraphEq
 
             try
             {
-                this.Expression = Parser.ParseExpression(
+                this.Expression = Parser.ParseFormula(
                     m_text,
                     m_userFunctions.Functions,
                     m_varNames
